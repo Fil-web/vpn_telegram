@@ -14,15 +14,15 @@ async def user_start(message: Message):
     is_subscribed, error_text = await ensure_user_subscription(bot, message.from_user)
     if not is_subscribed:
         await message.answer(
-            f'Привет. Для получения доступа сначала подпишитесь на канал.\n\n{error_text}',
+            f'👋 Привет! Чтобы получить доступ, сначала подпишитесь на канал.\n\n{error_text}',
             reply_markup=keyboard_subscription(),
             disable_web_page_preview=True,
         )
         return
 
     await message.answer(
-        'Привет, я помогу тебе быстро подключиться к VPN на базе Xray.\n\n'
-        'Ты получишь готовую subscription-ссылку, а подключиться можно в пару нажатий через v2RayTun или вручную через любой совместимый Xray-клиент.',
+        '👋 Привет! Я помогу тебе быстро подключиться к VPN на базе Xray.\n\n'
+        'Ты получишь готовую subscription-ссылку и сможешь подключиться в пару нажатий через v2RayTun или вручную через любой совместимый Xray-клиент.',
         reply_markup=keyboard_start(),
         disable_web_page_preview=True,
     )
@@ -31,7 +31,7 @@ async def user_start(message: Message):
 @user_router.message(Command('help'))
 async def help_handler(message: Message):
     await message.answer(
-        'Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента. '
+        'ℹ️ Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента.\n\n'
         'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
@@ -43,7 +43,7 @@ async def help_callback_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     await bot.send_message(
         callback_query.from_user.id,
-        'Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента. '
+        'ℹ️ Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента.\n\n'
         'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
@@ -57,13 +57,13 @@ async def check_subscription_handler(callback_query: CallbackQuery):
     if is_subscribed:
         await bot.send_message(
             callback_query.from_user.id,
-            'Подписка подтверждена. Теперь можно получить VPN-доступ.',
+            '✅ Подписка подтверждена. Теперь можно получить VPN-доступ.',
             reply_markup=keyboard_start(),
         )
         return
 
     await bot.send_message(
         callback_query.from_user.id,
-        error_text or 'Подписка пока не подтверждена.',
+        error_text or '⚠️ Подписка пока не подтверждена.',
         reply_markup=keyboard_subscription(),
     )
