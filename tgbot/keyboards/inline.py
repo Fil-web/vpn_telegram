@@ -25,6 +25,16 @@ def keyboard_subscription():
     return builder.as_markup()
 
 
+def keyboard_vpn_access(v2raytun_link: str | None = None):
+    builder = InlineKeyboardBuilder()
+    if v2raytun_link:
+        builder.button(text='Подключить в v2RayTun', url=v2raytun_link)
+    if config.subscription.channel_url:
+        builder.button(text='Наш канал', url=config.subscription.channel_url)
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def keyboard_help():
     builder = InlineKeyboardBuilder()
     if config.subscription.channel_url:
