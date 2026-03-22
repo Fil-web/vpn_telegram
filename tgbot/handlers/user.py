@@ -31,8 +31,11 @@ async def user_start(message: Message):
 @user_router.message(Command('help'))
 async def help_handler(message: Message):
     await message.answer(
-        'ℹ️ Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента.\n\n'
-        'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
+        'ℹ️ Бот выдает готовую subscription-ссылку для VPN на базе Xray.\n\n'
+        'Подключение занимает меньше минуты:\n'
+        '• 📲 можно открыть конфиг в v2RayTun автоматически\n'
+        '• 🛠 можно добавить VPN вручную в любой совместимый Xray-клиент\n\n'
+        'После проверки подписки бот сразу покажет все нужные данные для подключения.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
@@ -43,8 +46,11 @@ async def help_callback_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     await bot.send_message(
         callback_query.from_user.id,
-        'ℹ️ Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента.\n\n'
-        'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
+        'ℹ️ Бот выдает готовую subscription-ссылку для VPN на базе Xray.\n\n'
+        'Подключение занимает меньше минуты:\n'
+        '• 📲 можно открыть конфиг в v2RayTun автоматически\n'
+        '• 🛠 можно добавить VPN вручную в любой совместимый Xray-клиент\n\n'
+        'После проверки подписки бот сразу покажет все нужные данные для подключения.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
