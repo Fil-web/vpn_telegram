@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 from loader import bot
-from services import ensure_user_subscription, fetch_vpn_access
+from services import ensure_user_subscription, get_vpn_access_text
 from tgbot.keyboards.inline import keyboard_subscription
 
 vpn_router = Router()
@@ -22,7 +22,7 @@ async def _send_vpn_access(user):
         return
 
     try:
-        access_data = await fetch_vpn_access(user)
+        access_data = get_vpn_access_text()
     except RuntimeError as exc:
         await bot.send_message(user.id, str(exc))
         return

@@ -1,7 +1,7 @@
 from services.subscription import ensure_user_subscription
-from services.vpn_api import fetch_vpn_access
+from services.vpn_access import get_vpn_access_text
 
 __all__ = [
     "ensure_user_subscription",
-    "fetch_vpn_access",
+    "get_vpn_access_text",
 ]

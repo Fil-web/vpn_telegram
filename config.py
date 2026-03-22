@@ -33,24 +33,13 @@ class Webhook:
 
 
 @dataclass
-class VpnServer:
-    base_url: str
-    api_path: str
-    api_token: str
-    timeout: int
+class VpnAccess:
+    text: str
 
     @staticmethod
     def from_env(env: Env):
-        base_url = env.str("VPN_API_BASE_URL")
-        api_path = env.str("VPN_API_PATH", "/api/v1/telegram/vpn")
-        api_token = env.str("VPN_API_TOKEN", "")
-        timeout = env.int("VPN_API_TIMEOUT", 15)
-        return VpnServer(
-            base_url=base_url,
-            api_path=api_path,
-            api_token=api_token,
-            timeout=timeout,
-        )
+        text = env.str("VPN_ACCESS_TEXT", "")
+        return VpnAccess(text=text)
 
 
 @dataclass
@@ -75,7 +64,7 @@ class ChannelSubscription:
 class Config:
     tg_bot: TgBot
     webhook: Webhook
-    vpn_server: VpnServer
+    vpn_access: VpnAccess
     subscription: ChannelSubscription
 
 
@@ -86,6 +75,6 @@ def load_config():
     return Config(
         tg_bot=TgBot.from_env(env),
         webhook=Webhook.from_env(env),
-        vpn_server=VpnServer.from_env(env),
+        vpn_access=VpnAccess.from_env(env),
         subscription=ChannelSubscription.from_env(env),
     )
