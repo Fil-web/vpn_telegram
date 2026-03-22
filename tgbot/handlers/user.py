@@ -1,0 +1,67 @@
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery
+
+from loader import bot
+from services import ensure_user_subscription
+from tgbot.keyboards.inline import keyboard_start, keyboard_help, keyboard_subscription
+
+user_router = Router()
+
+
+@user_router.message(Command('start'))
+async def user_start(message: Message):
+    is_subscribed, error_text = await ensure_user_subscription(bot, message.from_user)
+    if not is_subscribed:
+        await message.answer(
+            f'Привет. Для получения доступа сначала подпишитесь на канал.\n\n{error_text}',
+            reply_markup=keyboard_subscription(),
+            disable_web_page_preview=True,
+        )
+        return
+
+    await message.answer(
+        'Привет, я помогу тебе получить доступ к VPN.\n\n'
+        'Если подписка активна, бот запросит данные у вашего сервера.',
+        reply_markup=keyboard_start(),
+        disable_web_page_preview=True,
+    )
+
+
+@user_router.message(Command('help'))
+async def help_handler(message: Message):
+    await message.answer(
+        'Бот проверяет подписку на канал и только после этого запрашивает доступ у вашего VPN API.',
+        reply_markup=keyboard_help(),
+        disable_web_page_preview=True,
+    )
+
+
+@user_router.callback_query(F.data == 'help')
+async def help_callback_handler(callback_query: CallbackQuery):
+    await callback_query.answer()
+    await bot.send_message(
+        callback_query.from_user.id,
+        'Бот проверяет подписку на канал и только после этого запрашивает доступ у вашего VPN API.',
+        reply_markup=keyboard_help(),
+        disable_web_page_preview=True,
+    )
+
+
+@user_router.callback_query(F.data == 'check_subscription')
+async def check_subscription_handler(callback_query: CallbackQuery):
+    await callback_query.answer()
+    is_subscribed, error_text = await ensure_user_subscription(bot, callback_query.from_user)
+    if is_subscribed:
+        await bot.send_message(
+            callback_query.from_user.id,
+            'Подписка подтверждена. Теперь можно получить доступ.',
+            reply_markup=keyboard_start(),
+        )
+        return
+
+    await bot.send_message(
+        callback_query.from_user.id,
+        error_text or 'Подписка пока не подтверждена.',
+        reply_markup=keyboard_subscription(),
+    )
