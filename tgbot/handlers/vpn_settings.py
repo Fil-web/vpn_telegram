@@ -32,7 +32,8 @@ async def _send_vpn_access(user):
 
     await bot.send_message(
         user.id,
-        'Ваши данные для подключения:\n\n'
+        'VPN готов к подключению.\n\n'
+        'Ниже находится ваша subscription-ссылка. Можно открыть ее в v2RayTun автоматически или добавить вручную.\n\n'
         f'<pre>{escape(access_data)}</pre>',
         reply_markup=keyboard_vpn_access(connect_page_link, manual_page_link),
     )

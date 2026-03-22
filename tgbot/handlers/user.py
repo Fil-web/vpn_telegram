@@ -22,7 +22,7 @@ async def user_start(message: Message):
 
     await message.answer(
         'Привет, я помогу тебе быстро подключиться к VPN на базе Xray.\n\n'
-        'Xray работает стабильно, поддерживает современные протоколы и удобно подключается прямо через ссылку или импорт в приложение.',
+        'Ты получишь готовую subscription-ссылку, а подключиться можно в пару нажатий через v2RayTun или вручную через любой совместимый Xray-клиент.',
         reply_markup=keyboard_start(),
         disable_web_page_preview=True,
     )
@@ -31,7 +31,8 @@ async def user_start(message: Message):
 @user_router.message(Command('help'))
 async def help_handler(message: Message):
     await message.answer(
-        'Бот проверяет подписку на канал и после этого выдает готовые данные для подключения к VPN через Xray-клиент.',
+        'Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента. '
+        'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
@@ -42,7 +43,8 @@ async def help_callback_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     await bot.send_message(
         callback_query.from_user.id,
-        'Бот проверяет подписку на канал и после этого выдает готовые данные для подключения к VPN через Xray-клиент.',
+        'Бот проверяет подписку на канал и после этого выдает готовую ссылку для Xray-клиента. '
+        'Можно импортировать конфиг в v2RayTun автоматически или открыть отдельную страницу для ручного добавления.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
@@ -55,7 +57,7 @@ async def check_subscription_handler(callback_query: CallbackQuery):
     if is_subscribed:
         await bot.send_message(
             callback_query.from_user.id,
-            'Подписка подтверждена. Теперь можно получить доступ.',
+            'Подписка подтверждена. Теперь можно получить VPN-доступ.',
             reply_markup=keyboard_start(),
         )
         return
