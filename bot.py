@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from urllib.parse import unquote
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
@@ -14,6 +15,100 @@ from tgbot.middlewares.flood import ThrottlingMiddleware
 from utils import broadcaster
 
 logger = logging.getLogger(__name__)
+
+
+async def connect_page_handler(request: web.Request) -> web.Response:
+    encoded_config = request.query.get("config", "")
+    config_url = unquote(encoded_config).strip()
+
+    if not config_url:
+        return web.Response(text="Config URL is required.", status=400)
+
+    app_link = f"v2raytun://import/{encoded_config}"
+    html = f"""<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Подключение v2RayTun</title>
+  <style>
+    body {{
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(180deg, #f6fbff 0%, #eef4f8 100%);
+      color: #102a43;
+    }}
+    .wrap {{
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }}
+    .card {{
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(16, 42, 67, 0.08);
+    }}
+    h1 {{ margin-top: 0; font-size: 28px; }}
+    p {{ line-height: 1.6; }}
+    .actions {{
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 24px 0;
+    }}
+    .btn {{
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-weight: 600;
+    }}
+    .btn-primary {{
+      background: #0f9d7a;
+      color: #fff;
+    }}
+    .btn-secondary {{
+      background: #eef4f8;
+      color: #102a43;
+    }}
+    code {{
+      display: block;
+      overflow-wrap: anywhere;
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 13px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Импорт в v2RayTun</h1>
+      <p>Нажмите кнопку ниже, чтобы открыть конфиг в приложении. Если приложение не открылось, скопируйте ссылку вручную.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{app_link}">Открыть в v2RayTun</a>
+        <a class="btn btn-secondary" href="#" onclick="navigator.clipboard.writeText(document.getElementById('config').innerText); return false;">Скопировать ссылку</a>
+      </div>
+      <code id="config">{config_url}</code>
+    </div>
+  </div>
+  <script>
+    window.setTimeout(function () {{
+      window.location.href = "{app_link}";
+    }}, 250);
+  </script>
+</body>
+</html>"""
+    return web.Response(text=html, content_type="text/html")
+
+
+def create_auxiliary_app() -> web.Application:
+    app = web.Application()
+    app.router.add_get("/connect", connect_page_handler)
+    return app
 
 
 async def on_startup(bot: Bot):
@@ -87,7 +182,14 @@ async def main_polling():
     register_global_middlewares(dp)
     await on_startup(bot)
     await bot.delete_webhook()
-    await dp.start_polling(bot)
+    runner = web.AppRunner(create_auxiliary_app())
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=config.tg_bot.port)
+    await site.start()
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await runner.cleanup()
 
 
 if __name__ == '__main__':

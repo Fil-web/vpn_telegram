@@ -1,24 +1,4 @@
 services:
-  nginx:
-    container_name: free_vpn_bot_nginx
-    image: nginx:1.25-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - free_vpn_bot
-    restart: always
-    environment:
-      DOMAIN: ${DOMAIN}
-      LOCATION: ${SERVER_URL}
-      CERT_FULLCHAIN_PATH: "/etc/nginx/certs/fullchain.pem"
-      CERT_KEY_PATH: "/etc/nginx/certs/privkey.pem"
-    volumes:
-      - ./etc/nginx/templates:/etc/nginx/templates:ro
-      - ./etc/nginx/conf:/etc/nginx/conf.d
-      - ${CERT_FULLCHAIN_PATH}:/etc/nginx/certs/fullchain.pem
-      - ${CERT_KEY_PATH}:/etc/nginx/certs/privkey.pem
-      - ./certbot/data:/var/www/certbot
   vpn_bot:
     image: free_vpn_bot
     container_name: free_vpn_bot
@@ -30,6 +10,8 @@ services:
       - .:/usr/src/app
     command: python3 -m bot
     restart: always
+    ports:
+      - "${BOT_PORT}:${BOT_PORT}"
     env_file:
       - ".env"
     networks:

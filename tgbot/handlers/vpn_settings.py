@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 from loader import bot
-from services import ensure_user_subscription, get_v2raytun_import_link, get_vpn_access_text
+from services import ensure_user_subscription, get_connect_page_link, get_vpn_access_text
 from tgbot.keyboards.inline import keyboard_subscription, keyboard_vpn_access
 
 vpn_router = Router()
@@ -27,14 +27,14 @@ async def _send_vpn_access(user):
         await bot.send_message(user.id, str(exc))
         return
 
-    v2raytun_link = get_v2raytun_import_link(access_data)
+    connect_page_link = get_connect_page_link(access_data)
 
     await bot.send_message(
         user.id,
         'Ваши данные для подключения:\n\n'
         f'<pre>{escape(access_data)}</pre>\n\n'
-        'Если у вас установлен v2RayTun, можно открыть конфиг кнопкой ниже.',
-        reply_markup=keyboard_vpn_access(v2raytun_link),
+        'Если у вас установлен v2RayTun, можно открыть страницу импорта кнопкой ниже.',
+        reply_markup=keyboard_vpn_access(connect_page_link),
     )
 
 

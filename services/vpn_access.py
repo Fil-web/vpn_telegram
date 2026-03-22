@@ -23,3 +23,16 @@ def get_v2raytun_import_link(access_text: str) -> str | None:
         return None
 
     return f"v2raytun://import/{quote(normalized, safe='')}"
+
+
+def get_connect_page_link(access_text: str) -> str | None:
+    normalized = access_text.strip()
+    if not normalized:
+        return None
+
+    supported_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
+    if not normalized.startswith(supported_prefixes):
+        return None
+
+    encoded = quote(normalized, safe="")
+    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/connect?config={encoded}"
