@@ -14,7 +14,14 @@ def get_vpn_access_text() -> str:
 
 
 def _is_supported_config(normalized: str) -> bool:
-    supported_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
+    supported_prefixes = (
+        "vless://",
+        "vmess://",
+        "trojan://",
+        "ss://",
+        "https://",
+        "http://",
+    )
     return normalized.startswith(supported_prefixes)
 
 
