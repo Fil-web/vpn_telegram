@@ -30,7 +30,38 @@ async def connect_page_handler(request: web.Request) -> web.Response:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Подключение v2RayTun</title>
+  <title>Redirecting</title>
+  <style>
+    body {{
+      margin: 0;
+      background: #f6fbff;
+    }}
+  </style>
+</head>
+<body>
+  <script>
+    window.setTimeout(function () {{
+      window.location.href = "{app_link}";
+    }}, 50);
+  </script>
+</body>
+</html>"""
+    return web.Response(text=html, content_type="text/html")
+
+
+async def manual_page_handler(request: web.Request) -> web.Response:
+    encoded_config = request.query.get("config", "")
+    config_url = unquote(encoded_config).strip()
+
+    if not config_url:
+        return web.Response(text="Config URL is required.", status=400)
+
+    html = f"""<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ручное подключение</title>
   <style>
     body {{
       margin: 0;
@@ -51,12 +82,6 @@ async def connect_page_handler(request: web.Request) -> web.Response:
     }}
     h1 {{ margin-top: 0; font-size: 28px; }}
     p {{ line-height: 1.6; }}
-    .actions {{
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin: 24px 0;
-    }}
     .btn {{
       display: block;
       text-align: center;
@@ -64,12 +89,7 @@ async def connect_page_handler(request: web.Request) -> web.Response:
       border-radius: 16px;
       padding: 16px 18px;
       font-weight: 600;
-    }}
-    .btn-primary {{
-      background: #0f9d7a;
-      color: #fff;
-    }}
-    .btn-secondary {{
+      margin: 24px 0 12px;
       background: #eef4f8;
       color: #102a43;
     }}
@@ -86,20 +106,12 @@ async def connect_page_handler(request: web.Request) -> web.Response:
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Импорт в v2RayTun</h1>
-      <p>Нажмите кнопку ниже, чтобы открыть конфиг в приложении. Если приложение не открылось, скопируйте ссылку вручную.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="{app_link}">Открыть в v2RayTun</a>
-        <a class="btn btn-secondary" href="#" onclick="navigator.clipboard.writeText(document.getElementById('config').innerText); return false;">Скопировать ссылку</a>
-      </div>
+      <h1>Ручное добавление VPN</h1>
+      <p>Если автоматический импорт не сработал, скопируйте ссылку ниже и вставьте ее в приложение вручную.</p>
+      <a class="btn" href="#" onclick="navigator.clipboard.writeText(document.getElementById('config').innerText); return false;">Скопировать ссылку</a>
       <code id="config">{config_url}</code>
     </div>
   </div>
-  <script>
-    window.setTimeout(function () {{
-      window.location.href = "{app_link}";
-    }}, 250);
-  </script>
 </body>
 </html>"""
     return web.Response(text=html, content_type="text/html")
@@ -108,6 +120,7 @@ async def connect_page_handler(request: web.Request) -> web.Response:
 def create_auxiliary_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/connect", connect_page_handler)
+    app.router.add_get("/manual", manual_page_handler)
     return app
 
 

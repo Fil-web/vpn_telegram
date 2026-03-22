@@ -13,16 +13,9 @@ def get_vpn_access_text() -> str:
     )
 
 
-def get_v2raytun_import_link(access_text: str) -> str | None:
-    normalized = access_text.strip()
-    if not normalized:
-        return None
-
+def _is_supported_config(normalized: str) -> bool:
     supported_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
-    if not normalized.startswith(supported_prefixes):
-        return None
-
-    return f"v2raytun://import/{quote(normalized, safe='')}"
+    return normalized.startswith(supported_prefixes)
 
 
 def get_connect_page_link(access_text: str) -> str | None:
@@ -30,9 +23,20 @@ def get_connect_page_link(access_text: str) -> str | None:
     if not normalized:
         return None
 
-    supported_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
-    if not normalized.startswith(supported_prefixes):
+    if not _is_supported_config(normalized):
         return None
 
     encoded = quote(normalized, safe="")
     return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/connect?config={encoded}"
+
+
+def get_manual_page_link(access_text: str) -> str | None:
+    normalized = access_text.strip()
+    if not normalized:
+        return None
+
+    if not _is_supported_config(normalized):
+        return None
+
+    encoded = quote(normalized, safe="")
+    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/manual?config={encoded}"
