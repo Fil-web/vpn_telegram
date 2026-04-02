@@ -7,6 +7,7 @@ from aiogram.types import User
 
 from loader import config
 from services.user_store import user_store
+from services.xui_api import xui_service
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,12 @@ async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | No
 
     if stored_user and stored_user.was_subscribed and not stored_user.is_banned_forever:
         user_store.ban_forever(user.id, "User unsubscribed after getting access")
+        updated_user = user_store.get_user(user.id)
+        if updated_user:
+            try:
+                await xui_service.disable_user(updated_user)
+            except Exception:
+                logger.exception("Failed to disable x-ui client for unsubscribed user")
         return False, (
             "🚫 Доступ к боту закрыт навсегда.\n\n"
             "Система зафиксировала отмену подписки после получения доступа.\n"

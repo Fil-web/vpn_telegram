@@ -73,12 +73,46 @@ class Database:
 
 
 @dataclass
+class XUI:
+    enabled: bool
+    base_url: str
+    username: str
+    password: str
+    inbound_id: int
+    sub_base_url: str
+    client_prefix: str
+    verify_ssl: bool
+
+    @staticmethod
+    def from_env(env: Env):
+        enabled = env.bool("XUI_ENABLED", False)
+        base_url = env.str("XUI_BASE_URL", "")
+        username = env.str("XUI_USERNAME", "")
+        password = env.str("XUI_PASSWORD", "")
+        inbound_id = env.int("XUI_INBOUND_ID", 0)
+        sub_base_url = env.str("XUI_SUB_BASE_URL", "")
+        client_prefix = env.str("XUI_CLIENT_PREFIX", "tg")
+        verify_ssl = env.bool("XUI_VERIFY_SSL", True)
+        return XUI(
+            enabled=enabled,
+            base_url=base_url,
+            username=username,
+            password=password,
+            inbound_id=inbound_id,
+            sub_base_url=sub_base_url,
+            client_prefix=client_prefix,
+            verify_ssl=verify_ssl,
+        )
+
+
+@dataclass
 class Config:
     tg_bot: TgBot
     webhook: Webhook
     vpn_access: VpnAccess
     subscription: ChannelSubscription
     database: Database
+    xui: XUI
 
 
 def load_config():
@@ -91,4 +125,5 @@ def load_config():
         vpn_access=VpnAccess.from_env(env),
         subscription=ChannelSubscription.from_env(env),
         database=Database.from_env(env),
+        xui=XUI.from_env(env),
     )

@@ -4,6 +4,7 @@ from aiogram.types import Message
 
 from loader import config
 from services.user_store import user_store
+from services.xui_api import xui_service
 
 admin_router = Router()
 
@@ -58,6 +59,12 @@ async def ban_handler(message: Message):
     telegram_id = int(parts[1])
     user_store.unban(telegram_id)
     user_store.ban_forever(telegram_id, "Manual admin ban")
+    stored_user = user_store.get_user(telegram_id)
+    if stored_user:
+        try:
+            await xui_service.disable_user(stored_user)
+        except Exception:
+            pass
     await message.answer(f"🚫 Пользователь {telegram_id} заблокирован навсегда.")
 
 

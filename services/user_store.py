@@ -1,7 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable
 
 from aiogram.types import User
 
@@ -24,6 +23,10 @@ class StoredUser:
     created_at: str
     updated_at: str
     banned_reason: str | None
+    xui_email: str | None
+    xui_client_id: str | None
+    xui_sub_id: str | None
+    xui_inbound_id: int | None
 
 
 class UserStore:
@@ -49,11 +52,24 @@ class UserStore:
                     was_subscribed INTEGER NOT NULL DEFAULT 0,
                     is_banned_forever INTEGER NOT NULL DEFAULT 0,
                     banned_reason TEXT,
+                    xui_email TEXT,
+                    xui_client_id TEXT,
+                    xui_sub_id TEXT,
+                    xui_inbound_id INTEGER,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
                 """
             )
+            self._ensure_column(conn, "users", "xui_email", "TEXT")
+            self._ensure_column(conn, "users", "xui_client_id", "TEXT")
+            self._ensure_column(conn, "users", "xui_sub_id", "TEXT")
+            self._ensure_column(conn, "users", "xui_inbound_id", "INTEGER")
+
+    def _ensure_column(self, conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+        columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def upsert_user(self, user: User) -> None:
         now = _utc_now()
@@ -62,9 +78,11 @@ class UserStore:
                 """
                 INSERT INTO users (
                     telegram_id, username, first_name, last_name, language_code,
-                    was_subscribed, is_banned_forever, banned_reason, created_at, updated_at
+                    was_subscribed, is_banned_forever, banned_reason,
+                    xui_email, xui_client_id, xui_sub_id, xui_inbound_id,
+                    created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, ?, ?)
+                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, NULL, ?, ?)
                 ON CONFLICT(telegram_id) DO UPDATE SET
                     username=excluded.username,
                     first_name=excluded.first_name,
@@ -102,6 +120,10 @@ class UserStore:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             banned_reason=row["banned_reason"],
+            xui_email=row["xui_email"],
+            xui_client_id=row["xui_client_id"],
+            xui_sub_id=row["xui_sub_id"],
+            xui_inbound_id=row["xui_inbound_id"],
         )
 
     def mark_subscribed(self, telegram_id: int) -> None:
@@ -139,6 +161,29 @@ class UserStore:
                 WHERE telegram_id = ?
                 """,
                 (_utc_now(), telegram_id),
+            )
+
+    def set_xui_mapping(
+        self,
+        telegram_id: int,
+        *,
+        email: str,
+        client_id: str,
+        sub_id: str,
+        inbound_id: int,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET xui_email = ?,
+                    xui_client_id = ?,
+                    xui_sub_id = ?,
+                    xui_inbound_id = ?,
+                    updated_at = ?
+                WHERE telegram_id = ?
+                """,
+                (email, client_id, sub_id, inbound_id, _utc_now(), telegram_id),
             )
 
     def list_users(self) -> list[StoredUser]:

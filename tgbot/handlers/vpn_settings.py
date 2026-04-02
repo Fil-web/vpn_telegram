@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 from loader import bot
-from services import ensure_user_subscription, get_connect_page_link, get_manual_page_link, get_vpn_access_text
+from services import ensure_user_subscription, get_connect_page_link, get_manual_page_link, get_vpn_access_text, xui_service
 from tgbot.keyboards.inline import keyboard_subscription, keyboard_vpn_access
 
 vpn_router = Router()
@@ -22,7 +22,10 @@ async def _send_vpn_access(user):
         return
 
     try:
-        access_data = get_vpn_access_text()
+        if xui_service.is_enabled():
+            access_data = await xui_service.get_or_create_access(user)
+        else:
+            access_data = get_vpn_access_text()
     except RuntimeError as exc:
         await bot.send_message(user.id, str(exc))
         return
