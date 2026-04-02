@@ -63,11 +63,22 @@ class ChannelSubscription:
 
 
 @dataclass
+class Database:
+    path: str
+
+    @staticmethod
+    def from_env(env: Env):
+        path = env.str("DATABASE_PATH", "bot.db")
+        return Database(path=path)
+
+
+@dataclass
 class Config:
     tg_bot: TgBot
     webhook: Webhook
     vpn_access: VpnAccess
     subscription: ChannelSubscription
+    database: Database
 
 
 def load_config():
@@ -79,4 +90,5 @@ def load_config():
         webhook=Webhook.from_env(env),
         vpn_access=VpnAccess.from_env(env),
         subscription=ChannelSubscription.from_env(env),
+        database=Database.from_env(env),
     )
