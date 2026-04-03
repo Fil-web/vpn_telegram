@@ -17,8 +17,6 @@ def keyboard_start():
 
 def keyboard_subscription():
     builder = InlineKeyboardBuilder()
-    if config.access_chat.chat_url:
-        builder.button(text='💬 Вступить в чат', url=config.access_chat.chat_url)
     if config.subscription.channel_url:
         builder.button(text='📢 Подписаться на канал', url=config.subscription.channel_url)
     builder.button(text='✅ Проверить подписку', callback_data='check_subscription')
@@ -33,8 +31,6 @@ def keyboard_vpn_access(connect_page_link: str | None = None, manual_page_link: 
         builder.button(text='📲 Подключить в v2RayTun', url=connect_page_link)
     if manual_page_link:
         builder.button(text='🛠 Добавить VPN вручную', url=manual_page_link)
-    if config.subscription.channel_url:
-        builder.button(text='📢 Наш канал', url=config.subscription.channel_url)
     builder.adjust(1)
     return builder.as_markup()
 
