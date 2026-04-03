@@ -63,6 +63,24 @@ class ChannelSubscription:
 
 
 @dataclass
+class AccessChat:
+    chat_id: str
+    chat_url: str
+    required: bool
+
+    @staticmethod
+    def from_env(env: Env):
+        chat_id = env.str("ACCESS_CHAT_ID", "")
+        chat_url = env.str("ACCESS_CHAT_URL", "")
+        required = env.bool("REQUIRE_CHAT_MEMBERSHIP", False)
+        return AccessChat(
+            chat_id=chat_id,
+            chat_url=chat_url,
+            required=required,
+        )
+
+
+@dataclass
 class Database:
     path: str
 
@@ -111,6 +129,7 @@ class Config:
     webhook: Webhook
     vpn_access: VpnAccess
     subscription: ChannelSubscription
+    access_chat: AccessChat
     database: Database
     xui: XUI
 
@@ -124,6 +143,7 @@ def load_config():
         webhook=Webhook.from_env(env),
         vpn_access=VpnAccess.from_env(env),
         subscription=ChannelSubscription.from_env(env),
+        access_chat=AccessChat.from_env(env),
         database=Database.from_env(env),
         xui=XUI.from_env(env),
     )

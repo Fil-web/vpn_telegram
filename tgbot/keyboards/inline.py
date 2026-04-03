@@ -17,6 +17,8 @@ def keyboard_start():
 
 def keyboard_subscription():
     builder = InlineKeyboardBuilder()
+    if config.access_chat.chat_url:
+        builder.button(text='💬 Вступить в чат', url=config.access_chat.chat_url)
     if config.subscription.channel_url:
         builder.button(text='📢 Подписаться на канал', url=config.subscription.channel_url)
     builder.button(text='✅ Проверить подписку', callback_data='check_subscription')

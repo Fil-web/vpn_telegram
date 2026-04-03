@@ -12,6 +12,17 @@ from services.xui_api import xui_service
 logger = logging.getLogger(__name__)
 
 
+async def _check_membership(bot: Bot, chat_id: str, user_id: int) -> bool:
+    member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+    if member.status in {
+        ChatMemberStatus.CREATOR,
+        ChatMemberStatus.ADMINISTRATOR,
+        ChatMemberStatus.MEMBER,
+    }:
+        return True
+    return member.status == ChatMemberStatus.RESTRICTED and getattr(member, "is_member", False)
+
+
 async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | None]:
     user_store.upsert_user(user)
     stored_user = user_store.get_user(user.id)
@@ -22,31 +33,31 @@ async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | No
             "Повторная выдача VPN больше недоступна."
         )
 
-    if not config.subscription.required:
-        user_store.mark_subscribed(user.id)
-        return True, None
-
     try:
-        member = await bot.get_chat_member(
-            chat_id=config.subscription.channel_id,
-            user_id=user.id,
+        if config.access_chat.required:
+            is_chat_member = await _check_membership(bot, config.access_chat.chat_id, user.id)
+            if not is_chat_member:
+                return False, (
+                    "Сначала вступите в закрытый чат, потом вернитесь в бота и нажмите проверку."
+                )
+
+        if not config.subscription.required:
+            user_store.mark_subscribed(user.id)
+            return True, None
+
+        is_channel_member = await _check_membership(
+            bot,
+            config.subscription.channel_id,
+            user.id,
         )
     except TelegramAPIError as exc:
-        logger.exception("Failed to check channel subscription")
+        logger.exception("Failed to check access requirements")
         return False, (
-            "Не получилось проверить подписку на канал. "
-            "Проверьте, что бот добавлен в канал и имеет доступ к участникам."
+            "Не получилось проверить доступ. "
+            "Проверьте, что бот добавлен в чат и канал и имеет доступ к участникам."
         )
 
-    if member.status in {
-        ChatMemberStatus.CREATOR,
-        ChatMemberStatus.ADMINISTRATOR,
-        ChatMemberStatus.MEMBER,
-    }:
-        user_store.mark_subscribed(user.id)
-        return True, None
-
-    if member.status == ChatMemberStatus.RESTRICTED and getattr(member, "is_member", False):
+    if is_channel_member:
         user_store.mark_subscribed(user.id)
         return True, None
 
@@ -62,6 +73,11 @@ async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | No
             "🚫 Доступ к боту закрыт навсегда.\n\n"
             "Система зафиксировала отмену подписки после получения доступа.\n"
             "Повторная выдача VPN больше недоступна."
+        )
+
+    if config.access_chat.required:
+        return False, (
+            "Сначала вступите в закрытый чат и подпишитесь на канал, потом нажмите кнопку проверки."
         )
 
     return False, "Сначала подпишитесь на канал, потом нажмите кнопку проверки."

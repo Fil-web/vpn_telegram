@@ -36,6 +36,7 @@ async def _send_vpn_access(user):
     await bot.send_message(
         user.id,
         '🚀 VPN готов к подключению.\n\n'
+        'Доступ выдается только участникам закрытого чата и подписчикам канала.\n'
         'Ниже находится ваша subscription-ссылка. Можно открыть ее в v2RayTun автоматически или добавить вручную.\n\n'
         f'<pre>{escape(access_data)}</pre>',
         reply_markup=keyboard_vpn_access(connect_page_link, manual_page_link),
