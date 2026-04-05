@@ -51,30 +51,10 @@ async def connect_page_handler(request: web.Request) -> web.Response:
 
 async def manual_page_handler(request: web.Request) -> web.Response:
     encoded_config = request.query.get("config", "")
-    platform = request.query.get("platform", "android").strip().lower()
     config_url = unquote(encoded_config).strip()
 
     if not config_url:
         return web.Response(text="Config URL is required.", status=400)
-
-    is_ios = platform == "ios"
-    title = "Ручное подключение на iPhone / iOS" if is_ios else "Ручное подключение на Android"
-    intro = (
-        "1. Установите приложение V2Ray Client из App Store.\n"
-        "2. Откройте приложение и добавьте subscription-ссылку вручную.\n"
-        "3. Если копирование не сработало, выделите ссылку ниже и вставьте ее вручную в приложение."
-        if is_ios
-        else
-        "1. Откройте v2RayTun.\n"
-        "2. Добавьте subscription-ссылку вручную.\n"
-        "3. Если копирование не сработало, выделите ссылку ниже и вставьте ее вручную в приложение."
-    )
-    app_link = "https://apps.apple.com/ru/app/v2ray-client/id6747379524" if is_ios else None
-    app_button = (
-        f'<a class="btn secondary" href="{app_link}" target="_blank" rel="noopener noreferrer">Открыть приложение в App Store</a>'
-        if app_link
-        else ""
-    )
 
     html = f"""<!doctype html>
 <html lang="ru">
@@ -117,6 +97,17 @@ async def manual_page_handler(request: web.Request) -> web.Response:
       background: #102a43;
       color: #ffffff;
     }}
+    .hint {{
+      margin-top: 12px;
+      color: #486581;
+      font-size: 14px;
+    }}
+    .status {{
+      margin: 12px 0 0;
+      color: #1f7a54;
+      font-size: 14px;
+      min-height: 20px;
+    }}
     code {{
       display: block;
       overflow-wrap: anywhere;
@@ -130,13 +121,44 @@ async def manual_page_handler(request: web.Request) -> web.Response:
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>{title}</h1>
-      <p>{intro.replace(chr(10), '<br>')}</p>
-      {app_button}
-      <a class="btn" href="#" onclick="navigator.clipboard.writeText(document.getElementById('config').innerText); return false;">Скопировать ссылку</a>
+      <h1>Ручное добавление VPN</h1>
+      <p>
+        Android: откройте v2RayTun и добавьте subscription-ссылку вручную.<br>
+        iPhone / iOS: установите V2Ray Client из App Store и добавьте subscription-ссылку вручную.
+      </p>
+      <a class="btn secondary" href="https://apps.apple.com/ru/app/v2ray-client/id6747379524" target="_blank" rel="noopener noreferrer">🍎 Открыть приложение для iPhone / iOS</a>
+      <a class="btn" href="#" id="copy-btn">Скопировать ссылку</a>
+      <div class="status" id="copy-status"></div>
       <code id="config">{config_url}</code>
+      <p class="hint">Если кнопка копирования не сработала, выделите ссылку ниже вручную и вставьте ее в приложение.</p>
     </div>
   </div>
+  <script>
+    async function copyConfig(event) {{
+      event.preventDefault();
+      const config = document.getElementById('config').innerText;
+      const status = document.getElementById('copy-status');
+      try {{
+        if (navigator.clipboard && window.isSecureContext) {{
+          await navigator.clipboard.writeText(config);
+        }} else {{
+          const textarea = document.createElement('textarea');
+          textarea.value = config;
+          textarea.setAttribute('readonly', '');
+          textarea.style.position = 'absolute';
+          textarea.style.left = '-9999px';
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }}
+        status.textContent = 'Ссылка скопирована.';
+      }} catch (error) {{
+        status.textContent = 'Не удалось скопировать автоматически. Скопируйте ссылку вручную ниже.';
+      }}
+    }}
+    document.getElementById('copy-btn').addEventListener('click', copyConfig);
+  </script>
 </body>
 </html>"""
     return web.Response(text=html, content_type="text/html")

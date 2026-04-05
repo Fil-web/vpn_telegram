@@ -39,8 +39,7 @@ async def _send_vpn_access(user):
 
     android_connect_link = get_connect_page_link(access_data)
     ios_app_link = get_ios_app_link()
-    android_manual_link = get_manual_page_link(access_data, "android")
-    ios_manual_link = get_manual_page_link(access_data, "ios")
+    manual_link = get_manual_page_link(access_data)
 
     await bot.send_message(
         user.id,
@@ -53,8 +52,7 @@ async def _send_vpn_access(user):
         reply_markup=keyboard_vpn_access(
             android_connect_link=android_connect_link,
             ios_app_link=ios_app_link,
-            android_manual_link=android_manual_link,
-            ios_manual_link=ios_manual_link,
+            manual_link=manual_link,
         ),
     )
 

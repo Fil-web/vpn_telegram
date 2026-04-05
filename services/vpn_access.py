@@ -39,7 +39,7 @@ def get_connect_page_link(access_text: str) -> str | None:
     return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/connect?config={encoded}"
 
 
-def get_manual_page_link(access_text: str, platform: str) -> str | None:
+def get_manual_page_link(access_text: str) -> str | None:
     normalized = access_text.strip()
     if not normalized:
         return None
@@ -48,8 +48,7 @@ def get_manual_page_link(access_text: str, platform: str) -> str | None:
         return None
 
     encoded = quote(normalized, safe="")
-    encoded_platform = quote(platform, safe="")
-    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/manual?config={encoded}&platform={encoded_platform}"
+    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/manual?config={encoded}"
 
 
 def get_ios_app_link() -> str:
