@@ -2,6 +2,8 @@ from urllib.parse import quote
 
 from loader import config
 
+IOS_APP_URL = "https://apps.apple.com/ru/app/v2ray-client/id6747379524"
+
 
 def get_vpn_access_text() -> str:
     access_text = config.vpn_access.text.strip()
@@ -37,7 +39,7 @@ def get_connect_page_link(access_text: str) -> str | None:
     return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/connect?config={encoded}"
 
 
-def get_manual_page_link(access_text: str) -> str | None:
+def get_manual_page_link(access_text: str, platform: str) -> str | None:
     normalized = access_text.strip()
     if not normalized:
         return None
@@ -46,4 +48,9 @@ def get_manual_page_link(access_text: str) -> str | None:
         return None
 
     encoded = quote(normalized, safe="")
-    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/manual?config={encoded}"
+    encoded_platform = quote(platform, safe="")
+    return f"http://{config.tg_bot.ip}:{config.tg_bot.port}/manual?config={encoded}&platform={encoded_platform}"
+
+
+def get_ios_app_link() -> str:
+    return IOS_APP_URL

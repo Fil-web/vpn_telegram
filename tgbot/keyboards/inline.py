@@ -25,12 +25,21 @@ def keyboard_subscription():
     return builder.as_markup()
 
 
-def keyboard_vpn_access(connect_page_link: str | None = None, manual_page_link: str | None = None):
+def keyboard_vpn_access(
+    android_connect_link: str | None = None,
+    ios_app_link: str | None = None,
+    android_manual_link: str | None = None,
+    ios_manual_link: str | None = None,
+):
     builder = InlineKeyboardBuilder()
-    if connect_page_link:
-        builder.button(text='📲 Подключить в v2RayTun', url=connect_page_link)
-    if manual_page_link:
-        builder.button(text='🛠 Добавить VPN вручную', url=manual_page_link)
+    if android_connect_link:
+        builder.button(text='🤖 Android: Подключить в v2RayTun', url=android_connect_link)
+    if ios_app_link:
+        builder.button(text='🍎 iPhone / iOS: Открыть приложение', url=ios_app_link)
+    if android_manual_link:
+        builder.button(text='🛠 Android: Добавить вручную', url=android_manual_link)
+    if ios_manual_link:
+        builder.button(text='🛠 iPhone / iOS: Добавить вручную', url=ios_manual_link)
     builder.adjust(1)
     return builder.as_markup()
 

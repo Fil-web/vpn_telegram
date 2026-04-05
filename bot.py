@@ -51,10 +51,30 @@ async def connect_page_handler(request: web.Request) -> web.Response:
 
 async def manual_page_handler(request: web.Request) -> web.Response:
     encoded_config = request.query.get("config", "")
+    platform = request.query.get("platform", "android").strip().lower()
     config_url = unquote(encoded_config).strip()
 
     if not config_url:
         return web.Response(text="Config URL is required.", status=400)
+
+    is_ios = platform == "ios"
+    title = "Ручное подключение на iPhone / iOS" if is_ios else "Ручное подключение на Android"
+    intro = (
+        "1. Установите приложение V2Ray Client из App Store.\n"
+        "2. Откройте приложение и добавьте subscription-ссылку вручную.\n"
+        "3. Если копирование не сработало, выделите ссылку ниже и вставьте ее вручную в приложение."
+        if is_ios
+        else
+        "1. Откройте v2RayTun.\n"
+        "2. Добавьте subscription-ссылку вручную.\n"
+        "3. Если копирование не сработало, выделите ссылку ниже и вставьте ее вручную в приложение."
+    )
+    app_link = "https://apps.apple.com/ru/app/v2ray-client/id6747379524" if is_ios else None
+    app_button = (
+        f'<a class="btn secondary" href="{app_link}" target="_blank" rel="noopener noreferrer">Открыть приложение в App Store</a>'
+        if app_link
+        else ""
+    )
 
     html = f"""<!doctype html>
 <html lang="ru">
@@ -93,6 +113,10 @@ async def manual_page_handler(request: web.Request) -> web.Response:
       background: #eef4f8;
       color: #102a43;
     }}
+    .btn.secondary {{
+      background: #102a43;
+      color: #ffffff;
+    }}
     code {{
       display: block;
       overflow-wrap: anywhere;
@@ -106,8 +130,9 @@ async def manual_page_handler(request: web.Request) -> web.Response:
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Ручное добавление VPN</h1>
-      <p>Если автоматический импорт не сработал, скопируйте ссылку ниже и вставьте ее в приложение вручную.</p>
+      <h1>{title}</h1>
+      <p>{intro.replace(chr(10), '<br>')}</p>
+      {app_button}
       <a class="btn" href="#" onclick="navigator.clipboard.writeText(document.getElementById('config').innerText); return false;">Скопировать ссылку</a>
       <code id="config">{config_url}</code>
     </div>

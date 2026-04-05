@@ -5,7 +5,14 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 from loader import bot
-from services import ensure_user_subscription, get_connect_page_link, get_manual_page_link, get_vpn_access_text, xui_service
+from services import (
+    ensure_user_subscription,
+    get_connect_page_link,
+    get_ios_app_link,
+    get_manual_page_link,
+    get_vpn_access_text,
+    xui_service,
+)
 from tgbot.keyboards.inline import keyboard_subscription, keyboard_vpn_access
 
 vpn_router = Router()
@@ -30,16 +37,25 @@ async def _send_vpn_access(user):
         await bot.send_message(user.id, str(exc))
         return
 
-    connect_page_link = get_connect_page_link(access_data)
-    manual_page_link = get_manual_page_link(access_data)
+    android_connect_link = get_connect_page_link(access_data)
+    ios_app_link = get_ios_app_link()
+    android_manual_link = get_manual_page_link(access_data, "android")
+    ios_manual_link = get_manual_page_link(access_data, "ios")
 
     await bot.send_message(
         user.id,
         '🚀 VPN готов к подключению.\n\n'
         'Доступ выдается только участникам закрытого чата и подписчикам канала.\n'
-        'Ниже находится ваша subscription-ссылка. Можно открыть ее в v2RayTun автоматически или добавить вручную.\n\n'
+        'Выберите свое устройство:\n'
+        '• для Android доступно быстрое подключение в v2RayTun\n'
+        '• для iPhone доступно приложение V2Ray Client и ручное добавление\n\n'
         f'<pre>{escape(access_data)}</pre>',
-        reply_markup=keyboard_vpn_access(connect_page_link, manual_page_link),
+        reply_markup=keyboard_vpn_access(
+            android_connect_link=android_connect_link,
+            ios_app_link=ios_app_link,
+            android_manual_link=android_manual_link,
+            ios_manual_link=ios_manual_link,
+        ),
     )
 
 
