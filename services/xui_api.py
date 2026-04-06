@@ -110,7 +110,7 @@ class XUIService:
                 "id": client_id,
                 "flow": "",
                 "email": email,
-                "limitIp": 0,
+                "limitIp": 2,
                 "totalGB": 0,
                 "expiryTime": 0,
                 "enable": True,
