@@ -143,6 +143,12 @@ bash scripts/live_clients.sh 443
 python3 scripts/map_live_clients.py --port 443
 ```
 
+По умолчанию Чита считается нормальной зоной, а остальные города помечаются как подозрительные. При необходимости доверенный город можно переопределить:
+
+```bash
+python3 scripts/map_live_clients.py --port 443 --trusted-city Chita
+```
+
 По умолчанию карта сохранится в:
 
 ```bash
