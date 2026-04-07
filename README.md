@@ -108,3 +108,17 @@ CERT_KEY_PATH=/etc/letsencrypt/live/yourdomain_com/privkey.pem
 * `/banned` – посмотреть пользователей с вечным баном.  
 * `/ban 123456789` – вручную выдать вечный бан.  
 * `/unban 123456789` – снять вечный бан.  
+
+**Аудит клиентов x-ui:**
+
+На сервере можно запустить локальный аудит базы `x-ui`, чтобы увидеть клиентов, их трафик, известные IP и пометки по подозрительной активности:
+
+```bash
+python3 scripts/audit_xui.py --db /etc/x-ui/x-ui.db
+```
+
+Проверка одного клиента:
+
+```bash
+python3 scripts/audit_xui.py --db /etc/x-ui/x-ui.db --email tg_1017786982
+```
