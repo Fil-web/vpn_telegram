@@ -28,6 +28,11 @@ def parse_args():
         default=3,
         help="Mark client as suspicious when IP count is greater or equal to this value (default: 3)",
     )
+    parser.add_argument(
+        "--ips-only",
+        action="store_true",
+        help="Show compact list: user -> all known IPs",
+    )
     return parser.parse_args()
 
 
@@ -166,6 +171,12 @@ def main():
         ips = ips_map.get(email, [])
         ip_count = len(ips)
         status = build_status(client["limit_ip"], ip_count, args.suspicious_ip_count)
+
+        if args.ips_only:
+            print(
+                f"{email} | tgId={client['tg_id'] or '-'} | limitIp={client['limit_ip']} | ipCount={ip_count} | ips={', '.join(ips) if ips else '-'}"
+            )
+            continue
 
         print(f"User: {email}")
         print(f"Comment: {client['comment'] or '-'}")
