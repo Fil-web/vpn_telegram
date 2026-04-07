@@ -122,3 +122,15 @@ python3 scripts/audit_xui.py --db /etc/x-ui/x-ui.db
 ```bash
 python3 scripts/audit_xui.py --db /etc/x-ui/x-ui.db --email tg_1017786982
 ```
+
+**Live-мониторинг активных IP на VPN-порту:**
+
+```bash
+bash scripts/live_clients.sh
+```
+
+Для другого порта:
+
+```bash
+bash scripts/live_clients.sh 443
+```
