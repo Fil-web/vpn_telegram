@@ -43,6 +43,24 @@ def parse_args():
         action="store_true",
         help="Show only clients with suspicious IP behavior or limit overflow",
     )
+    parser.add_argument(
+        "--high-traffic-gb",
+        type=float,
+        default=60.0,
+        help="Mark client as high traffic when total usage reaches this many GB (default: 60)",
+    )
+    parser.add_argument(
+        "--new-user-days",
+        type=int,
+        default=3,
+        help="Treat user as new for this many days from creation time (default: 3)",
+    )
+    parser.add_argument(
+        "--new-user-heavy-gb",
+        type=float,
+        default=15.0,
+        help="Mark new user as suspicious when traffic reaches this many GB (default: 15)",
+    )
     return parser.parse_args()
 
 
@@ -156,6 +174,51 @@ def build_status(limit_ip: int, ip_count: int, suspicious_threshold: int) -> str
     return "OK"
 
 
+def timestamp_to_datetime(value: int | None) -> datetime | None:
+    if not value:
+        return None
+    if value > 10_000_000_000:
+        value = value / 1000
+    return datetime.fromtimestamp(value, tz=timezone.utc)
+
+
+def build_risk_flags(
+    *,
+    client: dict,
+    traffic_info: dict,
+    ip_count: int,
+    status: str,
+    high_traffic_bytes: int,
+    new_user_days: int,
+    new_user_heavy_bytes: int,
+) -> list[str]:
+    flags: list[str] = []
+    total_traffic = traffic_info.get("all_time", 0) or 0
+    created_at = timestamp_to_datetime(client.get("created_at"))
+    now = datetime.now(timezone.utc)
+
+    if status == "LIMIT EXCEEDED":
+        flags.append("LIMIT_EXCEEDED")
+    elif status == "SUSPICIOUS":
+        flags.append("MULTI_IP")
+
+    if total_traffic >= high_traffic_bytes:
+        flags.append("HIGH_TRAFFIC")
+
+    if created_at is not None:
+        age_days = (now - created_at).total_seconds() / 86400
+        if age_days <= new_user_days and total_traffic >= new_user_heavy_bytes:
+            flags.append("NEW_BUT_HEAVY_USAGE")
+
+    if client.get("limit_ip") == 1 and total_traffic >= new_user_heavy_bytes:
+        flags.append("STRICT_LIMIT_USER")
+
+    if not flags:
+        flags.append("NORMAL")
+
+    return flags
+
+
 def main():
     args = parse_args()
     db_path = Path(args.db)
@@ -175,6 +238,9 @@ def main():
     if not emails:
         raise SystemExit("No matching clients found.")
 
+    high_traffic_bytes = int(args.high_traffic_gb * 1024 * 1024 * 1024)
+    new_user_heavy_bytes = int(args.new_user_heavy_gb * 1024 * 1024 * 1024)
+
     if args.sort_by_traffic:
         emails = sorted(
             emails,
@@ -188,13 +254,22 @@ def main():
         ips = ips_map.get(email, [])
         ip_count = len(ips)
         status = build_status(client["limit_ip"], ip_count, args.suspicious_ip_count)
+        risk_flags = build_risk_flags(
+            client=client,
+            traffic_info=traffic_info,
+            ip_count=ip_count,
+            status=status,
+            high_traffic_bytes=high_traffic_bytes,
+            new_user_days=args.new_user_days,
+            new_user_heavy_bytes=new_user_heavy_bytes,
+        )
 
-        if args.suspicious_only and status == "OK":
+        if args.suspicious_only and risk_flags == ["NORMAL"]:
             continue
 
         if args.ips_only:
             print(
-                f"{email} | tgId={client['tg_id'] or '-'} | limitIp={client['limit_ip']} | ipCount={ip_count} | traffic={fmt_bytes(traffic_info.get('all_time', 0))} | status={status} | ips={', '.join(ips) if ips else '-'}"
+                f"{email} | tgId={client['tg_id'] or '-'} | limitIp={client['limit_ip']} | ipCount={ip_count} | traffic={fmt_bytes(traffic_info.get('all_time', 0))} | status={status} | risk={','.join(risk_flags)} | ips={', '.join(ips) if ips else '-'}"
             )
             continue
 
@@ -215,6 +290,7 @@ def main():
         print(f"Traffic total: {fmt_bytes(traffic_info.get('all_time', 0))}")
         print(f"Last online: {fmt_ts(traffic_info.get('last_online', 0))}")
         print(f"Status: {status}")
+        print(f"Risk flags: {', '.join(risk_flags)}")
         print("-" * 48)
 
 
