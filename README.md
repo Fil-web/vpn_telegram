@@ -134,3 +134,17 @@ bash scripts/live_clients.sh
 ```bash
 bash scripts/live_clients.sh 443
 ```
+
+**Карта активных IP:**
+
+Скрипт соберёт текущие IP на VPN-порту, определит страну и город и создаст HTML-карту:
+
+```bash
+python3 scripts/map_live_clients.py --port 443
+```
+
+По умолчанию карта сохранится в:
+
+```bash
+reports/live_clients_map.html
+```
