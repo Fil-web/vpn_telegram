@@ -33,6 +33,16 @@ def parse_args():
         action="store_true",
         help="Show compact list: user -> all known IPs",
     )
+    parser.add_argument(
+        "--sort-by-traffic",
+        action="store_true",
+        help="Sort output by total traffic, descending",
+    )
+    parser.add_argument(
+        "--suspicious-only",
+        action="store_true",
+        help="Show only clients with suspicious IP behavior or limit overflow",
+    )
     return parser.parse_args()
 
 
@@ -165,6 +175,13 @@ def main():
     if not emails:
         raise SystemExit("No matching clients found.")
 
+    if args.sort_by_traffic:
+        emails = sorted(
+            emails,
+            key=lambda email: traffic.get(email, {}).get("all_time", 0),
+            reverse=True,
+        )
+
     for email in emails:
         client = clients[email]
         traffic_info = traffic.get(email, {})
@@ -172,9 +189,12 @@ def main():
         ip_count = len(ips)
         status = build_status(client["limit_ip"], ip_count, args.suspicious_ip_count)
 
+        if args.suspicious_only and status == "OK":
+            continue
+
         if args.ips_only:
             print(
-                f"{email} | tgId={client['tg_id'] or '-'} | limitIp={client['limit_ip']} | ipCount={ip_count} | ips={', '.join(ips) if ips else '-'}"
+                f"{email} | tgId={client['tg_id'] or '-'} | limitIp={client['limit_ip']} | ipCount={ip_count} | traffic={fmt_bytes(traffic_info.get('all_time', 0))} | status={status} | ips={', '.join(ips) if ips else '-'}"
             )
             continue
 
