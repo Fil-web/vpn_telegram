@@ -8,15 +8,11 @@ from services.user_store import StoredUser
 logger = logging.getLogger(__name__)
 
 
-def keyboard_start(is_admin: bool = False):
+def keyboard_start():
     builder = InlineKeyboardBuilder()
     builder.button(text='🚀 Подключить VPN', callback_data='vpn')
     builder.button(text='ℹ️ Как это работает', callback_data='help')
-    if is_admin:
-        builder.button(text='🛠 Админка', callback_data='admin_menu')
-        builder.adjust(2, 1)
-    else:
-        builder.adjust(2)
+    builder.adjust(2)
     return builder.as_markup()
 
 
