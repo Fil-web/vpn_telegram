@@ -48,7 +48,7 @@ class XUIService:
         return f"{node.sub_base_url.rstrip('/')}/{sub_id}"
 
     def _public_subscription_url(self, sub_id: str) -> str:
-        if config.xui.has_extra_nodes():
+        if config.xui.has_extra_nodes() or config.xui.extra_static_sub_urls:
             base_url = config.xui.aggregator_base_url.rstrip("/")
             if not base_url:
                 base_url = f"http://{config.tg_bot.ip}:{config.tg_bot.port}"
@@ -259,6 +259,14 @@ class XUIService:
             for node in config.xui.all_nodes():
                 url = self._subscription_url(node, sub_id)
                 response = await session.get(url, ssl=node.verify_ssl)
+                response.raise_for_status()
+                payload = await response.text()
+                for line in self._normalize_subscription_lines(payload):
+                    if line not in seen:
+                        seen.add(line)
+                        all_lines.append(line)
+            for url in config.xui.extra_static_sub_urls:
+                response = await session.get(url)
                 response.raise_for_status()
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):

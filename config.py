@@ -111,6 +111,7 @@ class XUI:
     client_prefix: str
     verify_ssl: bool
     aggregator_base_url: str
+    extra_static_sub_urls: list[str]
     extra_nodes: list["XUI.Node"] = field(default_factory=list)
 
     def primary_node(self) -> "XUI.Node":
@@ -140,6 +141,11 @@ class XUI:
         client_prefix = env.str("XUI_CLIENT_PREFIX", "tg")
         verify_ssl = env.bool("XUI_VERIFY_SSL", True)
         aggregator_base_url = env.str("XUI_AGGREGATOR_BASE_URL", "").rstrip("/")
+        extra_static_sub_urls_raw = env.str("XUI_EXTRA_STATIC_SUB_URLS", "[]").strip() or "[]"
+        extra_static_sub_urls_payload = json.loads(extra_static_sub_urls_raw)
+        if not isinstance(extra_static_sub_urls_payload, list):
+            raise ValueError("XUI_EXTRA_STATIC_SUB_URLS must be a JSON array.")
+        extra_static_sub_urls = [str(item).strip() for item in extra_static_sub_urls_payload if str(item).strip()]
         extra_nodes_raw = env.str("XUI_EXTRA_NODES", "[]").strip() or "[]"
         extra_nodes_payload = json.loads(extra_nodes_raw)
         if not isinstance(extra_nodes_payload, list):
@@ -168,6 +174,7 @@ class XUI:
             client_prefix=client_prefix,
             verify_ssl=verify_ssl,
             aggregator_base_url=aggregator_base_url,
+            extra_static_sub_urls=extra_static_sub_urls,
             extra_nodes=extra_nodes,
         )
 

@@ -64,6 +64,7 @@ cat env.dist > .env
 * `XUI_CLIENT_PREFIX='tg'` – Префикс email клиента в x-ui.  
 * `XUI_VERIFY_SSL=True` – Проверять SSL при работе с x-ui.  
 * `XUI_AGGREGATOR_BASE_URL='http://your-server-ip:8080'` – Внешний URL бота, через который можно отдать одну общую subscription-ссылку для нескольких x-ui серверов.  
+* `XUI_EXTRA_STATIC_SUB_URLS='[]'` – JSON-массив дополнительных готовых subscription URL, которые нужно просто подмешать в одну общую ссылку без логина в чужую x-ui панель.  
 * `XUI_EXTRA_NODES='[]'` – JSON-массив дополнительных x-ui узлов. Пример: `[{"base_url":"https://de.example.com:2053/panel","username":"admin","password":"pass","inbound_id":1,"sub_base_url":"https://de.example.com:2096/sub","verify_ssl":true}]`  
 * `VPN_ACCESS_TEXT='https://your-domain.com:2096/sub/your_subscription_token'` – Subscription-ссылка, ключ или текст, которые бот отправит пользователю после проверки подписки.  
 * `CERT_FULLCHAIN_PATH=''` и `CERT_KEY_PATH=''` – Пути к сертификату и ключу соответственно.
