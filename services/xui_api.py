@@ -78,21 +78,36 @@ class XUIService:
             "User-Agent": "Mozilla/5.0",
         }
 
-    async def _login(self, session: ClientSession, node: config.xui.Node) -> None:
-        warmup_response = await session.get(
-            node.base_url,
-            headers=self._browser_headers(node),
+    async def _get_csrf_token(self, session: ClientSession, node: config.xui.Node) -> str | None:
+        response = await session.get(
+            f"{node.base_url}/csrf-token",
+            headers={
+                "X-Requested-With": "XMLHttpRequest",
+                "User-Agent": "Mozilla/5.0",
+            },
             ssl=node.verify_ssl,
         )
-        warmup_response.raise_for_status()
+        response.raise_for_status()
+        payload = await response.json()
+        token = payload.get("obj")
+        return token if isinstance(token, str) and token else None
 
+    async def _login(self, session: ClientSession, node: config.xui.Node) -> None:
+        csrf_token = await self._get_csrf_token(session, node)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0",
+        }
+        if csrf_token:
+            headers["X-CSRF-Token"] = csrf_token
         response = await session.post(
             f"{node.base_url}/login",
             data={
                 "username": node.username,
                 "password": node.password,
             },
-            headers=self._browser_headers(node),
+            headers=headers,
             ssl=node.verify_ssl,
         )
         response.raise_for_status()
