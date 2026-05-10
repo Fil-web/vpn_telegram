@@ -265,12 +265,14 @@ class XUIService:
         all_lines: list[str] = []
         seen: set[str] = set()
         async with ClientSession() as session:
-            for node in config.xui.all_nodes():
+            for index, node in enumerate(config.xui.all_nodes()):
                 url = self._subscription_url(node, sub_id)
                 response = await session.get(url, ssl=node.verify_ssl)
                 response.raise_for_status()
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):
+                    if index == 0:
+                        line = self._apply_label(line, config.xui.primary_label)
                     if line not in seen:
                         seen.add(line)
                         all_lines.append(line)
