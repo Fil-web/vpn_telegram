@@ -4,7 +4,7 @@ import secrets
 import ssl
 import uuid
 from dataclasses import dataclass
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from aiohttp import ClientSession, CookieJar
 from aiogram.types import User
@@ -196,6 +196,12 @@ class XUIService:
             return [line.strip() for line in normalized.splitlines() if line.strip()]
         return [line.strip() for line in decoded.splitlines() if line.strip()]
 
+    def _apply_label(self, line: str, label: str) -> str:
+        if not label or "://" not in line or "#" not in line:
+            return line
+        parts = urlsplit(line)
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, quote(label)))
+
     async def get_or_create_access(self, user: User) -> str:
         if not self.is_enabled():
             raise RuntimeError("x-ui personal issuance is disabled.")
@@ -268,11 +274,12 @@ class XUIService:
                     if line not in seen:
                         seen.add(line)
                         all_lines.append(line)
-            for url in config.xui.extra_static_sub_urls:
-                response = await session.get(url)
+            for item in config.xui.extra_static_sub_urls:
+                response = await session.get(item.url)
                 response.raise_for_status()
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):
+                    line = self._apply_label(line, item.label)
                     if line not in seen:
                         seen.add(line)
                         all_lines.append(line)

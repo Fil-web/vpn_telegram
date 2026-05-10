@@ -118,6 +118,11 @@ class XUI:
         sub_base_url: str
         verify_ssl: bool
 
+    @dataclass
+    class StaticSubscription:
+        url: str
+        label: str = ""
+
     enabled: bool
     base_url: str
     username: str
@@ -127,7 +132,7 @@ class XUI:
     client_prefix: str
     verify_ssl: bool
     aggregator_base_url: str
-    extra_static_sub_urls: list[str]
+    extra_static_sub_urls: list["XUI.StaticSubscription"]
     extra_nodes: list["XUI.Node"] = field(default_factory=list)
 
     def primary_node(self) -> "XUI.Node":
@@ -161,7 +166,20 @@ class XUI:
         extra_static_sub_urls_payload = json.loads(extra_static_sub_urls_raw)
         if not isinstance(extra_static_sub_urls_payload, list):
             raise ValueError("XUI_EXTRA_STATIC_SUB_URLS must be a JSON array.")
-        extra_static_sub_urls = [str(item).strip() for item in extra_static_sub_urls_payload if str(item).strip()]
+        extra_static_sub_urls: list[XUI.StaticSubscription] = []
+        for item in extra_static_sub_urls_payload:
+            if isinstance(item, str):
+                url = item.strip()
+                if url:
+                    extra_static_sub_urls.append(XUI.StaticSubscription(url=url))
+                continue
+            if isinstance(item, dict):
+                url = str(item.get("url", "")).strip()
+                label = str(item.get("label", "")).strip()
+                if url:
+                    extra_static_sub_urls.append(XUI.StaticSubscription(url=url, label=label))
+                continue
+            raise ValueError("Each XUI_EXTRA_STATIC_SUB_URLS item must be a string or object.")
         extra_nodes_raw = env.str("XUI_EXTRA_NODES", "[]").strip() or "[]"
         extra_nodes_payload = json.loads(extra_nodes_raw)
         if not isinstance(extra_nodes_payload, list):
