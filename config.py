@@ -92,6 +92,22 @@ class Database:
 
 
 @dataclass
+class Certificates:
+    fullchain_path: str
+    key_path: str
+
+    @staticmethod
+    def from_env(env: Env):
+        return Certificates(
+            fullchain_path=env.str("CERT_FULLCHAIN_PATH", ""),
+            key_path=env.str("CERT_KEY_PATH", ""),
+        )
+
+    def is_configured(self) -> bool:
+        return bool(self.fullchain_path and self.key_path)
+
+
+@dataclass
 class XUI:
     @dataclass
     class Node:
@@ -187,6 +203,7 @@ class Config:
     subscription: ChannelSubscription
     access_chat: AccessChat
     database: Database
+    certificates: Certificates
     xui: XUI
 
 
@@ -201,5 +218,6 @@ def load_config():
         subscription=ChannelSubscription.from_env(env),
         access_chat=AccessChat.from_env(env),
         database=Database.from_env(env),
+        certificates=Certificates.from_env(env),
         xui=XUI.from_env(env),
     )

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from urllib.parse import unquote
 
 from aiogram import Bot, Dispatcher, F
@@ -189,6 +190,18 @@ def create_auxiliary_app() -> web.Application:
     return app
 
 
+def get_ssl_context() -> ssl.SSLContext | None:
+    if not config.certificates.is_configured():
+        return None
+
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(
+        config.certificates.fullchain_path,
+        config.certificates.key_path,
+    )
+    return ssl_context
+
+
 async def on_startup(bot: Bot):
     await broadcaster.broadcast(bot, [config.tg_bot.admin_id], "Бот запущен")
     await register_commands(bot)
@@ -262,7 +275,12 @@ async def main_polling():
     await bot.delete_webhook()
     runner = web.AppRunner(create_auxiliary_app())
     await runner.setup()
-    site = web.TCPSite(runner, host="0.0.0.0", port=config.tg_bot.port)
+    site = web.TCPSite(
+        runner,
+        host="0.0.0.0",
+        port=config.tg_bot.port,
+        ssl_context=get_ssl_context(),
+    )
     await site.start()
     try:
         await dp.start_polling(bot)

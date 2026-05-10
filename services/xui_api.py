@@ -1,6 +1,7 @@
 import base64
 import json
 import secrets
+import ssl
 import uuid
 from dataclasses import dataclass
 from urllib.parse import urlsplit
@@ -51,7 +52,9 @@ class XUIService:
         if config.xui.has_extra_nodes() or config.xui.extra_static_sub_urls:
             base_url = config.xui.aggregator_base_url.rstrip("/")
             if not base_url:
-                base_url = f"http://{config.tg_bot.ip}:{config.tg_bot.port}"
+                scheme = "https" if config.certificates.is_configured() else "http"
+                host = config.webhook.domain or config.tg_bot.ip
+                base_url = f"{scheme}://{host}:{config.tg_bot.port}"
             return f"{base_url}/sub/{sub_id}"
         return self._subscription_url(config.xui.primary_node(), sub_id)
 
