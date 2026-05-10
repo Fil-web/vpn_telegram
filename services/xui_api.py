@@ -78,6 +78,16 @@ class XUIService:
             "User-Agent": "Mozilla/5.0",
         }
 
+    async def _csrf_headers(self, session: ClientSession, node: config.xui.Node) -> dict[str, str]:
+        headers = {
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0",
+        }
+        csrf_token = await self._get_csrf_token(session, node)
+        if csrf_token:
+            headers["X-CSRF-Token"] = csrf_token
+        return headers
+
     async def _get_csrf_token(self, session: ClientSession, node: config.xui.Node) -> str | None:
         response = await session.get(
             f"{node.base_url}/csrf-token",
@@ -242,6 +252,7 @@ class XUIService:
                 "id": str(node.inbound_id),
                 "settings": json.dumps({"clients": [client_payload]}, ensure_ascii=False),
             },
+            headers=await self._csrf_headers(session, node),
             ssl=node.verify_ssl,
         )
         response.raise_for_status()
@@ -264,6 +275,7 @@ class XUIService:
                 "id": str(inbound_id),
                 "settings": json.dumps({"clients": [payload]}, ensure_ascii=False),
             },
+            headers=await self._csrf_headers(session, node),
             ssl=node.verify_ssl,
         )
         response.raise_for_status()
@@ -280,6 +292,7 @@ class XUIService:
     ) -> None:
         response = await session.post(
             f"{node.base_url}/panel/api/inbounds/{inbound_id}/resetClientTraffic/{email}",
+            headers=await self._csrf_headers(session, node),
             ssl=node.verify_ssl,
         )
         response.raise_for_status()
@@ -449,6 +462,7 @@ class XUIService:
                     continue
                 response = await session.post(
                     f"{node.base_url}/panel/api/inbounds/{existing_client.inbound_id}/delClient/{existing_client.client_id}",
+                    headers=await self._csrf_headers(session, node),
                     ssl=node.verify_ssl,
                 )
                 response.raise_for_status()
