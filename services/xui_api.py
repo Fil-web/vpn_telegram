@@ -320,6 +320,16 @@ class XUIService:
         query = urlencode(query_pairs, doseq=True)
         return urlunsplit((parts.scheme, f"{userinfo}@{new_endpoint}", parts.path, query, parts.fragment))
 
+    def _user_from_stored(self, stored_user: StoredUser) -> User:
+        return User(
+            id=stored_user.telegram_id,
+            is_bot=False,
+            first_name=stored_user.first_name or "",
+            last_name=stored_user.last_name,
+            username=stored_user.username,
+            language_code=stored_user.language_code,
+        )
+
     async def get_or_create_access(self, user: User) -> str:
         if not self.is_enabled():
             raise RuntimeError("x-ui personal issuance is disabled.")
@@ -428,10 +438,22 @@ class XUIService:
 
         all_lines: list[str] = []
         seen: set[str] = set()
+        stored_user = user_store.get_user_by_sub_id(sub_id)
         async with ClientSession() as session:
             for index, node in enumerate(config.xui.all_nodes()):
                 url = self._subscription_url(node, sub_id)
                 response = await session.get(url, ssl=node.verify_ssl)
+                if response.status >= 400 and index > 0 and stored_user and stored_user.xui_email:
+                    await response.release()
+                    async with ClientSession(cookie_jar=CookieJar(unsafe=True)) as node_session:
+                        await self._ensure_client_on_node(
+                            node_session,
+                            node,
+                            self._user_from_stored(stored_user),
+                            stored_user.xui_email,
+                            sub_id,
+                        )
+                    response = await session.get(url, ssl=node.verify_ssl)
                 response.raise_for_status()
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):

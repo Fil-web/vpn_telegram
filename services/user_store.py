@@ -134,6 +134,16 @@ class UserStore:
             xui_inbound_id=row["xui_inbound_id"],
         )
 
+    def get_user_by_sub_id(self, sub_id: str) -> StoredUser | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT telegram_id FROM users WHERE xui_sub_id = ?",
+                (sub_id,),
+            ).fetchone()
+        if not row:
+            return None
+        return self.get_user(int(row["telegram_id"]))
+
     def mark_subscribed(self, telegram_id: int) -> None:
         with self._connect() as conn:
             conn.execute(
