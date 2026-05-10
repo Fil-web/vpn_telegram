@@ -117,6 +117,7 @@ class XUI:
         inbound_id: int
         sub_base_url: str
         verify_ssl: bool
+        label: str = ""
 
     @dataclass
     class StaticSubscription:
@@ -159,6 +160,7 @@ class XUI:
             inbound_id=self.inbound_id,
             sub_base_url=self.sub_base_url,
             verify_ssl=self.verify_ssl,
+            label=self.primary_label,
         )
 
     def all_nodes(self) -> list["XUI.Node"]:
@@ -231,6 +233,7 @@ class XUI:
                     inbound_id=int(node.get("inbound_id", 0)),
                     sub_base_url=str(node.get("sub_base_url", "")),
                     verify_ssl=bool(node.get("verify_ssl", True)),
+                    label=str(node.get("label", "")).strip(),
                 )
             )
         return XUI(

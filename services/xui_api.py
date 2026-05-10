@@ -494,7 +494,7 @@ class XUIService:
                 for line in self._normalize_subscription_lines(payload):
                     if index == 0:
                         line = self._apply_host(line, config.xui.primary_host)
-                        line = self._apply_label(line, config.xui.primary_label)
+                    line = self._apply_label(line, node.label)
                     if line not in seen:
                         seen.add(line)
                         all_lines.append(line)
