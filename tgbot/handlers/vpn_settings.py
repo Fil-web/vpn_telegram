@@ -1,4 +1,5 @@
 from html import escape
+import logging
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -16,6 +17,7 @@ from services import (
 from tgbot.keyboards.inline import keyboard_subscription, keyboard_vpn_access
 
 vpn_router = Router()
+logger = logging.getLogger(__name__)
 
 
 async def _send_vpn_access(user):
@@ -35,6 +37,13 @@ async def _send_vpn_access(user):
             access_data = get_vpn_access_text()
     except RuntimeError as exc:
         await bot.send_message(user.id, str(exc))
+        return
+    except Exception:
+        logger.exception("Failed to prepare VPN access for user %s", user.id)
+        await bot.send_message(
+            user.id,
+            "Не удалось подготовить VPN прямо сейчас. Попробуйте еще раз через несколько секунд.",
+        )
         return
 
     android_connect_link = get_connect_page_link(access_data)
@@ -64,5 +73,5 @@ async def vpn_handler(message: Message):
 
 @vpn_router.callback_query(F.data == 'vpn')
 async def vpn_callback_handler(callback_query: CallbackQuery):
-    await callback_query.answer()
+    await callback_query.answer("Готовлю VPN...", show_alert=False)
     await _send_vpn_access(callback_query.from_user)
