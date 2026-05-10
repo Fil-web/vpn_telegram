@@ -65,6 +65,7 @@ cat env.dist > .env
 * `XUI_VERIFY_SSL=True` – Проверять SSL при работе с x-ui.  
 * `XUI_AGGREGATOR_BASE_URL='http://your-server-ip:8080'` – Внешний URL бота, через который можно отдать одну общую subscription-ссылку для нескольких x-ui серверов.  
 * `XUI_PRIMARY_LABEL=''` – Человекочитаемое имя для основного узла, например `🇳🇱 Нидерланды`. Если указано, бот заменит исходный label основной подписки на него.  
+* `XUI_PRIMARY_HOST=''` – Если указано, бот заменит адрес основного узла в subscription, например на `nl.filserver.website`, чтобы в клиенте не светился IP.  
 * `XUI_EXTRA_STATIC_SUB_URLS='[]'` – JSON-массив дополнительных готовых subscription URL, которые нужно просто подмешать в одну общую ссылку без логина в чужую x-ui панель. Можно передавать как строки или как объекты с `url` и `label`, чтобы переименовать узел, например: `[{"url":"https://de.example.com:2096/sub/abcd","label":"Германия"}]`.  
 * `XUI_EXTRA_NODES='[]'` – JSON-массив дополнительных x-ui узлов. Пример: `[{"base_url":"https://de.example.com:2053/panel","username":"admin","password":"pass","inbound_id":1,"sub_base_url":"https://de.example.com:2096/sub","verify_ssl":true}]`  
 * `VPN_ACCESS_TEXT='https://your-domain.com:2096/sub/your_subscription_token'` – Subscription-ссылка, ключ или текст, которые бот отправит пользователю после проверки подписки.  

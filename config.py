@@ -133,6 +133,7 @@ class XUI:
     verify_ssl: bool
     aggregator_base_url: str
     primary_label: str
+    primary_host: str
     extra_static_sub_urls: list["XUI.StaticSubscription"]
     extra_nodes: list["XUI.Node"] = field(default_factory=list)
 
@@ -164,6 +165,7 @@ class XUI:
         verify_ssl = env.bool("XUI_VERIFY_SSL", True)
         aggregator_base_url = env.str("XUI_AGGREGATOR_BASE_URL", "").rstrip("/")
         primary_label = env.str("XUI_PRIMARY_LABEL", "").strip()
+        primary_host = env.str("XUI_PRIMARY_HOST", "").strip()
         extra_static_sub_urls_raw = env.str("XUI_EXTRA_STATIC_SUB_URLS", "[]").strip() or "[]"
         extra_static_sub_urls_payload = json.loads(extra_static_sub_urls_raw)
         if not isinstance(extra_static_sub_urls_payload, list):
@@ -211,6 +213,7 @@ class XUI:
             verify_ssl=verify_ssl,
             aggregator_base_url=aggregator_base_url,
             primary_label=primary_label,
+            primary_host=primary_host,
             extra_static_sub_urls=extra_static_sub_urls,
             extra_nodes=extra_nodes,
         )

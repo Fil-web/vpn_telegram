@@ -4,7 +4,7 @@ import secrets
 import ssl
 import uuid
 from dataclasses import dataclass
-from urllib.parse import quote, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from aiohttp import ClientSession, CookieJar
 from aiogram.types import User
@@ -202,6 +202,19 @@ class XUIService:
         parts = urlsplit(line)
         return urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, quote(label)))
 
+    def _apply_host(self, line: str, host: str) -> str:
+        if not host or "://" not in line:
+            return line
+        parts = urlsplit(line)
+        if "@" not in parts.netloc:
+            return line
+        userinfo, _, endpoint = parts.netloc.rpartition("@")
+        _, sep, port = endpoint.partition(":")
+        new_endpoint = host if not sep else f"{host}:{port}"
+        query_pairs = parse_qsl(parts.query, keep_blank_values=True)
+        query = urlencode(query_pairs, doseq=True)
+        return urlunsplit((parts.scheme, f"{userinfo}@{new_endpoint}", parts.path, query, parts.fragment))
+
     async def get_or_create_access(self, user: User) -> str:
         if not self.is_enabled():
             raise RuntimeError("x-ui personal issuance is disabled.")
@@ -272,6 +285,7 @@ class XUIService:
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):
                     if index == 0:
+                        line = self._apply_host(line, config.xui.primary_host)
                         line = self._apply_label(line, config.xui.primary_label)
                     if line not in seen:
                         seen.add(line)
