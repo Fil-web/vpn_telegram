@@ -87,6 +87,9 @@ class XUIService:
             },
             ssl=node.verify_ssl,
         )
+        if response.status == 404:
+            await response.release()
+            return None
         response.raise_for_status()
         payload = await response.json()
         token = payload.get("obj")
@@ -94,6 +97,24 @@ class XUIService:
 
     async def _login(self, session: ClientSession, node: config.xui.Node) -> None:
         csrf_token = await self._get_csrf_token(session, node)
+        if not csrf_token:
+            warmup_response = await session.get(
+                node.base_url,
+                headers=self._browser_headers(node),
+                ssl=node.verify_ssl,
+            )
+            warmup_response.raise_for_status()
+            response = await session.post(
+                f"{node.base_url}/login",
+                data={
+                    "username": node.username,
+                    "password": node.password,
+                },
+                headers=self._browser_headers(node),
+                ssl=node.verify_ssl,
+            )
+            response.raise_for_status()
+            return
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "X-Requested-With": "XMLHttpRequest",
