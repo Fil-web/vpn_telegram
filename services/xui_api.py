@@ -67,6 +67,13 @@ class XUIService:
         }
 
     async def _login(self, session: ClientSession, node: config.xui.Node) -> None:
+        warmup_response = await session.get(
+            node.base_url,
+            headers=self._browser_headers(node),
+            ssl=node.verify_ssl,
+        )
+        warmup_response.raise_for_status()
+
         response = await session.post(
             f"{node.base_url}/login",
             data={
