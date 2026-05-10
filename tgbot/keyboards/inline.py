@@ -7,11 +7,15 @@ from loader import config
 logger = logging.getLogger(__name__)
 
 
-def keyboard_start():
+def keyboard_start(is_admin: bool = False):
     builder = InlineKeyboardBuilder()
     builder.button(text='🚀 Подключить VPN', callback_data='vpn')
     builder.button(text='ℹ️ Как это работает', callback_data='help')
-    builder.adjust(2)
+    if is_admin:
+        builder.button(text='🛠 Админка', callback_data='admin_menu')
+        builder.adjust(2, 1)
+    else:
+        builder.adjust(2)
     return builder.as_markup()
 
 
@@ -51,4 +55,14 @@ def keyboard_help():
 def keyboard_cancel():
     builder = InlineKeyboardBuilder()
     builder.button(text='❌Выйти из меню', callback_data='cancel')
+    return builder.as_markup()
+
+
+def keyboard_admin():
+    builder = InlineKeyboardBuilder()
+    builder.button(text='📊 Сводка', callback_data='admin_menu')
+    builder.button(text='👥 Пользователи', callback_data='admin_users')
+    builder.button(text='🚫 Баны', callback_data='admin_banned')
+    builder.button(text='ℹ️ Команды', callback_data='admin_help')
+    builder.adjust(2, 2)
     return builder.as_markup()

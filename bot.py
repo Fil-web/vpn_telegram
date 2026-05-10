@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
-from aiogram.types import BotCommand, BotCommandScopeDefault
+from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
@@ -216,6 +216,10 @@ async def register_commands(bot: Bot):
         BotCommand(command='vpn', description='Получить ключи'),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
+    await bot.set_my_commands(
+        [BotCommand(command='admin', description='Админ-панель')],
+        BotCommandScopeChat(chat_id=config.tg_bot.admin_id),
+    )
 
 
 def register_global_middlewares(dp: Dispatcher):
