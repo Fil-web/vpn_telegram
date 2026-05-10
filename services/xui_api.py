@@ -4,6 +4,7 @@ import secrets
 import ssl
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from aiohttp import ClientSession, CookieJar
@@ -20,6 +21,14 @@ class XUIClientRecord:
     sub_id: str
     inbound_id: int
     enabled: bool
+
+
+@dataclass
+class XUIGrantResult:
+    email: str
+    duration_days: int
+    traffic_gb: int
+    expires_at: datetime
 
 
 class XUIService:
@@ -106,12 +115,17 @@ class XUIService:
                 return inbound
         raise RuntimeError(f"x-ui inbound {node.inbound_id} not found at {node.base_url}.")
 
-    def _extract_client(self, inbound: dict, email: str) -> XUIClientRecord | None:
+    def _client_dicts(self, inbound: dict) -> list[dict]:
         settings = inbound.get("settings")
         if isinstance(settings, str):
             settings = json.loads(settings)
-        clients = settings.get("clients", []) if isinstance(settings, dict) else []
-        for client in clients:
+        if not isinstance(settings, dict):
+            return []
+        clients = settings.get("clients", [])
+        return clients if isinstance(clients, list) else []
+
+    def _extract_client(self, inbound: dict, email: str) -> XUIClientRecord | None:
+        for client in self._client_dicts(inbound):
             if client.get("email") == email:
                 return XUIClientRecord(
                     email=client.get("email"),
@@ -122,6 +136,53 @@ class XUIService:
                 )
         return None
 
+    def _find_client_payload(self, inbound: dict, email: str) -> dict | None:
+        for client in self._client_dicts(inbound):
+            if client.get("email") == email:
+                return client
+        return None
+
+    def _future_expiry_ms(self, duration_days: int) -> tuple[int, datetime]:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=duration_days)
+        return int(expires_at.timestamp() * 1000), expires_at
+
+    def _build_client_payload(
+        self,
+        *,
+        user: User | None,
+        email: str,
+        client_id: str,
+        sub_id: str,
+        traffic_gb: int,
+        duration_days: int,
+        existing: dict | None = None,
+    ) -> tuple[dict, datetime]:
+        expiry_ms, expires_at = self._future_expiry_ms(duration_days)
+        payload = dict(existing or {})
+        payload.update(
+            {
+                "id": client_id,
+                "flow": payload.get("flow", ""),
+                "email": email,
+                "limitIp": int(payload.get("limitIp", config.xui.default_limit_ip) or config.xui.default_limit_ip),
+                "totalGB": traffic_gb * 1024 * 1024 * 1024,
+                "expiryTime": expiry_ms,
+                "enable": True,
+                "tgId": str(user.id) if user else str(payload.get("tgId", "")),
+                "subId": sub_id,
+                "comment": (
+                    user.username or user.first_name or ""
+                    if user
+                    else str(payload.get("comment", ""))
+                ),
+                "reset": int(payload.get("reset", 0) or 0),
+                "updated_at": int(datetime.now(timezone.utc).timestamp() * 1000),
+            }
+        )
+        if user and "created_at" not in payload:
+            payload["created_at"] = payload["updated_at"]
+        return payload, expires_at
+
     async def _create_client(
         self,
         session: ClientSession,
@@ -129,21 +190,16 @@ class XUIService:
         user: User,
         email: str,
         sub_id: str,
-    ) -> str:
+    ) -> tuple[str, datetime]:
         client_id = str(uuid.uuid4())
-        client_payload = {
-            "id": client_id,
-            "flow": "",
-            "email": email,
-            "limitIp": 2,
-            "totalGB": 0,
-            "expiryTime": 0,
-            "enable": True,
-            "tgId": str(user.id),
-            "subId": sub_id,
-            "comment": user.username or user.first_name or "",
-            "reset": 0,
-        }
+        client_payload, expires_at = self._build_client_payload(
+            user=user,
+            email=email,
+            client_id=client_id,
+            sub_id=sub_id,
+            traffic_gb=config.xui.default_plan.traffic_gb,
+            duration_days=config.xui.default_plan.duration_days,
+        )
         response = await session.post(
             f"{node.base_url}/panel/api/inbounds/addClient",
             data={
@@ -156,7 +212,41 @@ class XUIService:
         payload = await response.json()
         if not payload.get("success"):
             raise RuntimeError(payload.get("msg", f"Failed to create x-ui client at {node.base_url}."))
-        return client_id
+        return client_id, expires_at
+
+    async def _update_client(
+        self,
+        session: ClientSession,
+        node: config.xui.Node,
+        inbound_id: int,
+        client_id: str,
+        payload: dict,
+    ) -> None:
+        response = await session.post(
+            f"{node.base_url}/panel/api/inbounds/updateClient/{client_id}",
+            data={
+                "id": str(inbound_id),
+                "settings": json.dumps({"clients": [payload]}, ensure_ascii=False),
+            },
+            ssl=node.verify_ssl,
+        )
+        response.raise_for_status()
+        body = await response.json()
+        if not body.get("success"):
+            raise RuntimeError(body.get("msg", f"Failed to update x-ui client at {node.base_url}."))
+
+    async def _reset_client_traffic(
+        self,
+        session: ClientSession,
+        node: config.xui.Node,
+        inbound_id: int,
+        email: str,
+    ) -> None:
+        response = await session.post(
+            f"{node.base_url}/panel/api/inbounds/{inbound_id}/resetClientTraffic/{email}",
+            ssl=node.verify_ssl,
+        )
+        response.raise_for_status()
 
     async def _ensure_client_on_node(
         self,
@@ -172,7 +262,7 @@ class XUIService:
         if existing_client:
             return existing_client
 
-        client_id = await self._create_client(session, node, user, email, sub_id)
+        client_id, _ = await self._create_client(session, node, user, email, sub_id)
         return XUIClientRecord(
             email=email,
             client_id=client_id,
@@ -230,7 +320,7 @@ class XUIService:
             if existing_primary:
                 primary_record = existing_primary
             else:
-                client_id = await self._create_client(session, primary_node, user, email, sub_id)
+                client_id, _ = await self._create_client(session, primary_node, user, email, sub_id)
                 primary_record = XUIClientRecord(
                     email=email,
                     client_id=client_id,
@@ -251,6 +341,52 @@ class XUIService:
             inbound_id=primary_record.inbound_id,
         )
         return self._public_subscription_url(sub_id)
+
+    async def grant_plan(self, stored_user: StoredUser, plan: config.xui.Plan) -> XUIGrantResult:
+        if not self.is_enabled():
+            raise RuntimeError("x-ui personal issuance is disabled.")
+        if not stored_user.xui_email:
+            raise RuntimeError("У пользователя еще нет выданного VPN-профиля.")
+
+        email = stored_user.xui_email
+        expires_at: datetime | None = None
+
+        for node in config.xui.all_nodes():
+            async with ClientSession(cookie_jar=CookieJar(unsafe=True)) as session:
+                await self._login(session, node)
+                inbound = await self._get_target_inbound(session, node)
+                existing_client = self._extract_client(inbound, email)
+                if not existing_client:
+                    continue
+                existing_payload = self._find_client_payload(inbound, email)
+                updated_payload, node_expires_at = self._build_client_payload(
+                    user=None,
+                    email=email,
+                    client_id=existing_client.client_id,
+                    sub_id=existing_client.sub_id,
+                    traffic_gb=plan.traffic_gb,
+                    duration_days=plan.duration_days,
+                    existing=existing_payload,
+                )
+                await self._update_client(
+                    session,
+                    node,
+                    existing_client.inbound_id,
+                    existing_client.client_id,
+                    updated_payload,
+                )
+                await self._reset_client_traffic(session, node, existing_client.inbound_id, email)
+                expires_at = node_expires_at
+
+        if not expires_at:
+            raise RuntimeError("Не удалось найти VPN-профиль пользователя в x-ui.")
+
+        return XUIGrantResult(
+            email=email,
+            duration_days=plan.duration_days,
+            traffic_gb=plan.traffic_gb,
+            expires_at=expires_at,
+        )
 
     async def disable_user(self, stored_user: StoredUser) -> None:
         if not self.is_enabled():

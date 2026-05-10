@@ -123,6 +123,15 @@ class XUI:
         url: str
         label: str = ""
 
+    @dataclass
+    class Plan:
+        traffic_gb: int
+        duration_days: int
+
+        @property
+        def traffic_bytes(self) -> int:
+            return self.traffic_gb * 1024 * 1024 * 1024
+
     enabled: bool
     base_url: str
     username: str
@@ -134,6 +143,11 @@ class XUI:
     aggregator_base_url: str
     primary_label: str
     primary_host: str
+    default_limit_ip: int
+    default_plan: "XUI.Plan"
+    gift_day_plan: "XUI.Plan"
+    gift_week_plan: "XUI.Plan"
+    gift_month_plan: "XUI.Plan"
     extra_static_sub_urls: list["XUI.StaticSubscription"]
     extra_nodes: list["XUI.Node"] = field(default_factory=list)
 
@@ -166,6 +180,23 @@ class XUI:
         aggregator_base_url = env.str("XUI_AGGREGATOR_BASE_URL", "").rstrip("/")
         primary_label = env.str("XUI_PRIMARY_LABEL", "").strip()
         primary_host = env.str("XUI_PRIMARY_HOST", "").strip()
+        default_limit_ip = env.int("XUI_DEFAULT_LIMIT_IP", 2)
+        default_plan = XUI.Plan(
+            traffic_gb=env.int("XUI_DEFAULT_TRAFFIC_GB", 60),
+            duration_days=env.int("XUI_DEFAULT_DURATION_DAYS", 30),
+        )
+        gift_day_plan = XUI.Plan(
+            traffic_gb=env.int("XUI_GIFT_1D_TRAFFIC_GB", 2),
+            duration_days=env.int("XUI_GIFT_1D_DURATION_DAYS", 1),
+        )
+        gift_week_plan = XUI.Plan(
+            traffic_gb=env.int("XUI_GIFT_7D_TRAFFIC_GB", 14),
+            duration_days=env.int("XUI_GIFT_7D_DURATION_DAYS", 7),
+        )
+        gift_month_plan = XUI.Plan(
+            traffic_gb=env.int("XUI_GIFT_30D_TRAFFIC_GB", 60),
+            duration_days=env.int("XUI_GIFT_30D_DURATION_DAYS", 30),
+        )
         extra_static_sub_urls_raw = env.str("XUI_EXTRA_STATIC_SUB_URLS", "[]").strip() or "[]"
         extra_static_sub_urls_payload = json.loads(extra_static_sub_urls_raw)
         if not isinstance(extra_static_sub_urls_payload, list):
@@ -214,6 +245,11 @@ class XUI:
             aggregator_base_url=aggregator_base_url,
             primary_label=primary_label,
             primary_host=primary_host,
+            default_limit_ip=default_limit_ip,
+            default_plan=default_plan,
+            gift_day_plan=gift_day_plan,
+            gift_week_plan=gift_week_plan,
+            gift_month_plan=gift_month_plan,
             extra_static_sub_urls=extra_static_sub_urls,
             extra_nodes=extra_nodes,
         )

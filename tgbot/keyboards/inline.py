@@ -3,6 +3,7 @@ import logging
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from loader import config
+from services.user_store import StoredUser
 
 logger = logging.getLogger(__name__)
 
@@ -65,4 +66,32 @@ def keyboard_admin():
     builder.button(text='🚫 Баны', callback_data='admin_banned')
     builder.button(text='ℹ️ Команды', callback_data='admin_help')
     builder.adjust(2, 2)
+    return builder.as_markup()
+
+
+def keyboard_admin_users(users: list[StoredUser]):
+    builder = InlineKeyboardBuilder()
+    builder.button(text='📊 Сводка', callback_data='admin_menu')
+    builder.button(text='ℹ️ Команды', callback_data='admin_help')
+    for user in users:
+        builder.button(
+            text=user.display_name[:32],
+            callback_data=f'admin_user:{user.telegram_id}',
+        )
+    builder.adjust(2, *([1] * len(users)))
+    return builder.as_markup()
+
+
+def keyboard_admin_user_actions(user_id: int, is_banned: bool = False):
+    builder = InlineKeyboardBuilder()
+    builder.button(text='🎁 1 день', callback_data=f'admin_gift:1:{user_id}')
+    builder.button(text='🎁 7 дней', callback_data=f'admin_gift:7:{user_id}')
+    builder.button(text='🎁 30 дней', callback_data=f'admin_gift:30:{user_id}')
+    if is_banned:
+        builder.button(text='✅ Разбанить', callback_data=f'admin_unban:{user_id}')
+    else:
+        builder.button(text='🚫 Забанить', callback_data=f'admin_ban:{user_id}')
+    builder.button(text='◀️ К списку', callback_data='admin_users')
+    builder.button(text='📊 Сводка', callback_data='admin_menu')
+    builder.adjust(2, 2, 2)
     return builder.as_markup()

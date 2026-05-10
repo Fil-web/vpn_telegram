@@ -28,6 +28,14 @@ class StoredUser:
     xui_sub_id: str | None
     xui_inbound_id: int | None
 
+    @property
+    def display_name(self) -> str:
+        if self.username:
+            return f"@{self.username}"
+        if self.first_name:
+            return self.first_name
+        return str(self.telegram_id)
+
 
 class UserStore:
     def __init__(self, db_path: str):
