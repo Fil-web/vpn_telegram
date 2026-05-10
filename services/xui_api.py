@@ -3,6 +3,7 @@ import json
 import secrets
 import uuid
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from aiohttp import ClientSession, CookieJar
 from aiogram.types import User
@@ -54,6 +55,17 @@ class XUIService:
             return f"{base_url}/sub/{sub_id}"
         return self._subscription_url(config.xui.primary_node(), sub_id)
 
+    def _browser_headers(self, node: config.xui.Node) -> dict[str, str]:
+        parsed = urlsplit(node.base_url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        referer = node.base_url.rstrip("/") + "/"
+        return {
+            "Origin": origin,
+            "Referer": referer,
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0",
+        }
+
     async def _login(self, session: ClientSession, node: config.xui.Node) -> None:
         response = await session.post(
             f"{node.base_url}/login",
@@ -61,6 +73,7 @@ class XUIService:
                 "username": node.username,
                 "password": node.password,
             },
+            headers=self._browser_headers(node),
             ssl=node.verify_ssl,
         )
         response.raise_for_status()
