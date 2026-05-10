@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 
 from environs import Env
 
@@ -92,6 +93,15 @@ class Database:
 
 @dataclass
 class XUI:
+    @dataclass
+    class Node:
+        base_url: str
+        username: str
+        password: str
+        inbound_id: int
+        sub_base_url: str
+        verify_ssl: bool
+
     enabled: bool
     base_url: str
     username: str
@@ -100,6 +110,24 @@ class XUI:
     sub_base_url: str
     client_prefix: str
     verify_ssl: bool
+    aggregator_base_url: str
+    extra_nodes: list["XUI.Node"] = field(default_factory=list)
+
+    def primary_node(self) -> "XUI.Node":
+        return XUI.Node(
+            base_url=self.base_url,
+            username=self.username,
+            password=self.password,
+            inbound_id=self.inbound_id,
+            sub_base_url=self.sub_base_url,
+            verify_ssl=self.verify_ssl,
+        )
+
+    def all_nodes(self) -> list["XUI.Node"]:
+        return [self.primary_node(), *self.extra_nodes]
+
+    def has_extra_nodes(self) -> bool:
+        return bool(self.extra_nodes)
 
     @staticmethod
     def from_env(env: Env):
@@ -111,6 +139,25 @@ class XUI:
         sub_base_url = env.str("XUI_SUB_BASE_URL", "")
         client_prefix = env.str("XUI_CLIENT_PREFIX", "tg")
         verify_ssl = env.bool("XUI_VERIFY_SSL", True)
+        aggregator_base_url = env.str("XUI_AGGREGATOR_BASE_URL", "").rstrip("/")
+        extra_nodes_raw = env.str("XUI_EXTRA_NODES", "[]").strip() or "[]"
+        extra_nodes_payload = json.loads(extra_nodes_raw)
+        if not isinstance(extra_nodes_payload, list):
+            raise ValueError("XUI_EXTRA_NODES must be a JSON array.")
+        extra_nodes: list[XUI.Node] = []
+        for node in extra_nodes_payload:
+            if not isinstance(node, dict):
+                raise ValueError("Each XUI_EXTRA_NODES item must be an object.")
+            extra_nodes.append(
+                XUI.Node(
+                    base_url=str(node.get("base_url", "")).rstrip("/"),
+                    username=str(node.get("username", "")),
+                    password=str(node.get("password", "")),
+                    inbound_id=int(node.get("inbound_id", 0)),
+                    sub_base_url=str(node.get("sub_base_url", "")),
+                    verify_ssl=bool(node.get("verify_ssl", True)),
+                )
+            )
         return XUI(
             enabled=enabled,
             base_url=base_url,
@@ -120,6 +167,8 @@ class XUI:
             sub_base_url=sub_base_url,
             client_prefix=client_prefix,
             verify_ssl=verify_ssl,
+            aggregator_base_url=aggregator_base_url,
+            extra_nodes=extra_nodes,
         )
 
 

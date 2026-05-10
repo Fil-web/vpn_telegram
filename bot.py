@@ -10,6 +10,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from loader import config
+from services.xui_api import xui_service
 from tgbot.handlers import routers_list
 from tgbot.middlewares.flood import ThrottlingMiddleware
 from utils import broadcaster
@@ -164,10 +165,27 @@ async def manual_page_handler(request: web.Request) -> web.Response:
     return web.Response(text=html, content_type="text/html")
 
 
+async def subscription_handler(request: web.Request) -> web.Response:
+    sub_id = request.match_info.get("sub_id", "").strip()
+    if not sub_id:
+        return web.Response(text="Subscription ID is required.", status=400)
+
+    try:
+        payload = await xui_service.build_subscription_payload(sub_id)
+    except RuntimeError as exc:
+        return web.Response(text=str(exc), status=502)
+    except Exception:
+        logger.exception("Failed to build aggregated subscription for %s", sub_id)
+        return web.Response(text="Failed to build subscription.", status=502)
+
+    return web.Response(text=payload, content_type="text/plain")
+
+
 def create_auxiliary_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/connect", connect_page_handler)
     app.router.add_get("/manual", manual_page_handler)
+    app.router.add_get("/sub/{sub_id}", subscription_handler)
     return app
 
 
@@ -215,7 +233,7 @@ def main_webhook():
     dp.startup.register(on_startup)
     register_global_middlewares(dp)
 
-    app = web.Application()
+    app = create_auxiliary_app()
 
     # Create an instance of request handler,
     # aiogram has few implementations for different cases of usage
