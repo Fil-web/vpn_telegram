@@ -85,7 +85,7 @@ class AccessPolicy:
             trial_traffic_gb=env.int("VPN_TRIAL_TRAFFIC_GB", 2),
             paid_duration_days=env.int("VPN_PAID_DURATION_DAYS", 30),
             paid_traffic_gb=env.int("VPN_PAID_TRAFFIC_GB", 50),
-            price_rub=env.int("VPN_PRICE_RUB", 250),
+            price_rub=env.int("VPN_PRICE_RUB", 200),
             payment_rules_text=env.str("PAYMENT_RULES_TEXT", DEFAULT_PAYMENT_RULES_TEXT).strip(),
         )
 

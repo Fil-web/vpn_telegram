@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
-from loader import bot
+from loader import bot, config
 from services import ensure_user_subscription, get_access_state
 from services.user_store import user_store
 from tgbot.keyboards.inline import keyboard_help, keyboard_start, keyboard_subscription
@@ -34,7 +34,7 @@ async def user_start(message: Message):
         '• одну ссылку для всех устройств\n\n'
         'Что дальше:\n'
         '• нажмите «Открыть доступ»\n'
-        '• оплатите 250 ₽\n'
+        f'• оплатите {config.access_policy.price_rub} ₽\n'
         '• сразу получите готовое подключение',
         reply_markup=keyboard_start(has_active_access=has_active_access),
         disable_web_page_preview=True,
@@ -47,7 +47,7 @@ async def help_handler(message: Message):
         '❓ Как подключиться\n\n'
         '1. Подпишитесь на канал.\n'
         '2. Откройте доступ в боте.\n'
-        '3. Оплатите 250 ₽.\n'
+        f'3. Оплатите {config.access_policy.price_rub} ₽.\n'
         '4. Выберите свое устройство и подключитесь.\n\n'
         'В доступ входит 30 дней использования и 50 ГБ трафика.\n'
         'После оплаты бот сразу покажет готовую ссылку и кнопки подключения.',
@@ -64,7 +64,7 @@ async def help_callback_handler(callback_query: CallbackQuery):
         '❓ Как подключиться\n\n'
         '1. Подпишитесь на канал.\n'
         '2. Откройте доступ в боте.\n'
-        '3. Оплатите 250 ₽.\n'
+        f'3. Оплатите {config.access_policy.price_rub} ₽.\n'
         '4. Выберите свое устройство и подключитесь.\n\n'
         'В доступ входит 30 дней использования и 50 ГБ трафика.\n'
         'После оплаты бот сразу покажет готовую ссылку и кнопки подключения.',

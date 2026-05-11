@@ -54,7 +54,7 @@ cat env.dist > .env
 * `CHANNEL_ID='-1001234567890'` – ID канала для проверки подписки.  
 * `CHANNEL_URL='https://t.me/your_channel'` – Ссылка на канал.  
 * `VPN_PAID_DURATION_DAYS=30` и `VPN_PAID_TRAFFIC_GB=50` – Параметры оплаченного доступа.  
-* `VPN_PRICE_RUB=250` – Стоимость продления.  
+* `VPN_PRICE_RUB=200` – Стоимость продления.  
 * `YOOKASSA_ENABLED=False` – Включает оплату через YooKassa.  
 * `YOOKASSA_SHOP_ID='1355330'` – ID магазина YooKassa.  
 * `YOOKASSA_SECRET_KEY=''` – Секретный ключ YooKassa для API.  

@@ -22,12 +22,20 @@ def _days_left(user: StoredUser) -> timedelta | None:
 
 def _reminder_text(days: int) -> str:
     day_word = "дня" if days == 2 else "день"
+    if days == 2:
+        return (
+            f"✨ Доступ к VPN закончится через {days} {day_word}.\n\n"
+            "Чтобы не остаться без подключения в неудобный момент, лучше продлить доступ заранее.\n\n"
+            f"💳 Продление: {config.access_policy.price_rub} ₽\n"
+            f"📅 Новый период: {config.access_policy.paid_duration_days} дней\n"
+            f"📦 Лимит на период: {config.access_policy.paid_traffic_gb} ГБ"
+        )
     return (
-        f"⏰ Напоминание: доступ к VPN закончится через {days} {day_word}.\n\n"
-        f"Чтобы не потерять доступ, продлите его заранее.\n\n"
+        f"⏰ До окончания доступа остался {days} {day_word}.\n\n"
+        "Если хотите пользоваться VPN без паузы, продлите доступ сейчас. После оплаты всё активируется автоматически.\n\n"
         f"💳 Продление: {config.access_policy.price_rub} ₽\n"
-        f"📦 Лимит на период: {config.access_policy.paid_traffic_gb} ГБ\n"
-        f"📅 Период доступа: {config.access_policy.paid_duration_days} дней"
+        f"📅 Новый период: {config.access_policy.paid_duration_days} дней\n"
+        f"📦 Лимит на период: {config.access_policy.paid_traffic_gb} ГБ"
     )
 
 
