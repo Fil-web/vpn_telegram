@@ -3,7 +3,8 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 from loader import bot
-from services import ensure_user_subscription
+from services import ensure_user_subscription, get_access_state
+from services.user_store import user_store
 from tgbot.keyboards.inline import keyboard_help, keyboard_start, keyboard_subscription
 
 user_router = Router()
@@ -22,6 +23,9 @@ async def user_start(message: Message):
         )
         return
 
+    stored_user = user_store.get_user(message.from_user.id)
+    has_active_access = get_access_state(stored_user) == "active"
+
     await message.answer(
         '👋 Привет! Здесь можно быстро получить стабильный VPN без лишней настройки.\n\n'
         'Как это работает:\n'
@@ -30,7 +34,7 @@ async def user_start(message: Message):
         '• получаете готовую ссылку сразу после оплаты\n'
         '• одна ссылка подходит для Android, iPhone, Mac, Windows и других устройств\n\n'
         'Нажмите кнопку ниже, и бот сам проведет вас дальше.',
-        reply_markup=keyboard_start(),
+        reply_markup=keyboard_start(has_active_access=has_active_access),
         disable_web_page_preview=True,
     )
 
@@ -74,10 +78,12 @@ async def check_subscription_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     is_subscribed, error_text = await ensure_user_subscription(bot, callback_query.from_user)
     if is_subscribed:
+        stored_user = user_store.get_user(callback_query.from_user.id)
+        has_active_access = get_access_state(stored_user) == "active"
         await bot.send_message(
             callback_query.from_user.id,
             '✅ Подписка подтверждена. Теперь можно активировать доступ к VPN.',
-            reply_markup=keyboard_start(),
+            reply_markup=keyboard_start(has_active_access=has_active_access),
         )
         return
 
