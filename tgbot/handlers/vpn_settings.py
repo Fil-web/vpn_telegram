@@ -52,6 +52,9 @@ def _payment_required_text() -> str:
 
 
 async def _load_access_text(user) -> str:
+    stored_user = user_store.get_user(user.id)
+    if get_access_state(stored_user) != "active":
+        raise RuntimeError("Доступ к VPN откроется сразу после оплаты.")
     if xui_service.is_enabled():
         return await xui_service.get_or_create_access(user)
     return ""
@@ -322,6 +325,10 @@ async def device_callback_handler(callback_query: CallbackQuery):
             error_text or "Сначала подпишитесь на канал.",
             reply_markup=keyboard_subscription(),
         )
+        return
+    stored_user = user_store.get_user(callback_query.from_user.id)
+    if get_access_state(stored_user) != "active":
+        await _send_paywall(callback_query.from_user)
         return
     platform = callback_query.data.split(":", maxsplit=1)[1]
     access_text = await _load_access_text(callback_query.from_user)
