@@ -70,6 +70,4 @@ def get_access_state(stored_user: StoredUser | None) -> str:
         return "banned"
     if stored_user.has_active_access:
         return "active"
-    if not stored_user.trial_used:
-        return "trial_available"
     return "payment_required"

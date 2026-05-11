@@ -8,7 +8,6 @@ from aiogram.types import CallbackQuery, Message
 from loader import bot, config
 from services import (
     ensure_paid_access,
-    ensure_trial_access,
     ensure_user_subscription,
     get_access_state,
     get_connect_page_link,
@@ -45,10 +44,10 @@ def _access_summary() -> str:
 
 def _payment_required_text() -> str:
     return (
-        "💸 Пробный период уже закончился.\n\n"
-        "Чтобы продолжить пользоваться VPN без перерывов, активируйте полный доступ.\n\n"
+        "💸 Доступ к VPN открывается после оплаты.\n\n"
+        "Активируйте доступ и получите готовую ссылку для подключения без лишней настройки.\n\n"
         f"{_access_summary()}\n\n"
-        "После оплаты доступ продлится автоматически, а ваша ссылка останется рабочей."
+        "После оплаты доступ активируется автоматически, а ссылка будет готова сразу для ваших устройств."
     )
 
 
@@ -96,25 +95,11 @@ async def _send_vpn_access(user) -> None:
     state = get_access_state(stored_user)
 
     try:
-        if state in {"new", "trial_available"}:
-            stored_user, _ = await ensure_trial_access(user)
-            await _show_device_picker(
-                user,
-                (
-                    "🎁 Пробный доступ активирован.\n\n"
-                    f"⏳ Срок: {config.access_policy.trial_duration_days} день\n"
-                    f"📦 Лимит пробного трафика: {config.access_policy.trial_traffic_gb} ГБ\n\n"
-                    "Проверьте скорость и удобство подключения. Если все подойдет, доступ можно продлить без смены ссылки.\n\n"
-                    "Выберите устройство для подключения."
-                ),
-            )
-            return
-
         if state == "active":
             await _show_device_picker(user)
             return
 
-        if state == "payment_required":
+        if state in {"new", "payment_required"}:
             await _send_paywall(user)
             return
 
