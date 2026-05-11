@@ -68,12 +68,13 @@ def get_access_state(stored_user: StoredUser | None) -> str:
         return "new"
     if stored_user.is_banned_forever:
         return "banned"
+    has_legacy_access = stored_user.has_active_access and stored_user.access_kind == "legacy"
     has_confirmed_paid_access = (
         stored_user.has_active_access
         and stored_user.access_kind == "paid"
         and stored_user.last_payment_status == "succeeded"
     )
     has_gift_access = stored_user.has_active_access and stored_user.access_kind == "gift"
-    if has_confirmed_paid_access or has_gift_access:
+    if has_legacy_access or has_confirmed_paid_access or has_gift_access:
         return "active"
     return "payment_required"
