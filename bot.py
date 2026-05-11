@@ -241,10 +241,11 @@ async def yookassa_webhook_handler(request: web.Request) -> web.Response:
             await request.app["bot"].send_message(
                 stored_user.telegram_id,
                 (
-                    "✅ Оплата подтверждена.\n\n"
-                    f"Доступ активирован на {config.access_policy.paid_duration_days} дней.\n"
-                    f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ.\n\n"
-                    "Выберите устройство для подключения."
+                    "🎉 Оплата прошла успешно.\n\n"
+                    "Доступ уже активирован и привязан к вашему аккаунту.\n\n"
+                    f"Период доступа: {config.access_policy.paid_duration_days} дней\n"
+                    f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ\n\n"
+                    "Теперь выберите устройство и подключайтесь."
                 ),
                 reply_markup=keyboard_device_picker(),
             )
