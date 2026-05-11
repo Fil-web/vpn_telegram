@@ -68,6 +68,6 @@ def get_access_state(stored_user: StoredUser | None) -> str:
         return "new"
     if stored_user.is_banned_forever:
         return "banned"
-    if stored_user.has_active_access:
+    if stored_user.has_active_access and stored_user.access_kind in {"paid", "gift"}:
         return "active"
     return "payment_required"

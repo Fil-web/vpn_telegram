@@ -79,10 +79,11 @@ async def _show_device_picker(user, intro_text: str | None = None) -> None:
     )
 
 
-async def _send_paywall(user) -> None:
+async def _send_paywall(user, intro_text: str | None = None) -> None:
+    text = intro_text or _payment_required_text()
     await bot.send_message(
         user.id,
-        _payment_required_text(),
+        text,
         reply_markup=keyboard_payment_required(),
     )
 
@@ -328,7 +329,14 @@ async def device_callback_handler(callback_query: CallbackQuery):
         return
     stored_user = user_store.get_user(callback_query.from_user.id)
     if get_access_state(stored_user) != "active":
-        await _send_paywall(callback_query.from_user)
+        await _send_paywall(
+            callback_query.from_user,
+            (
+                "🔒 Сначала активируйте доступ.\n\n"
+                "Как только оплата пройдет, я сразу покажу подключение именно для этого устройства.\n\n"
+                f"{_access_summary()}"
+            ),
+        )
         return
     platform = callback_query.data.split(":", maxsplit=1)[1]
     access_text = await _load_access_text(callback_query.from_user)
