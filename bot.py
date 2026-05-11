@@ -12,7 +12,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from loader import config
-from services import ensure_paid_access, send_expiry_reminders, yookassa_service
+from services import ensure_paid_access, get_access_state, send_expiry_reminders, yookassa_service
 from services.user_store import user_store
 from services.xui_api import xui_service
 from tgbot.keyboards.inline import keyboard_device_picker, keyboard_payment_required
@@ -238,6 +238,12 @@ async def yookassa_webhook_handler(request: web.Request) -> web.Response:
         logger.warning("YooKassa webhook user not resolved for payment %s", payment_id)
         return web.Response(text="ok")
 
+    already_processed = (
+        stored_user.last_payment_id == payment_id
+        and stored_user.last_payment_status == "succeeded"
+        and get_access_state(stored_user) == "active"
+    )
+
     if payment_id:
         user_store.set_payment_state(
             stored_user.telegram_id,
@@ -246,6 +252,8 @@ async def yookassa_webhook_handler(request: web.Request) -> web.Response:
         )
 
     if payload.get("event") == "payment.succeeded" or status == "succeeded":
+        if already_processed:
+            return web.Response(text="ok")
         try:
             refreshed_user = user_store.get_user(stored_user.telegram_id) or stored_user
             await ensure_paid_access(refreshed_user)

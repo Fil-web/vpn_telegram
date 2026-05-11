@@ -277,13 +277,21 @@ async def check_payment_callback(callback_query: CallbackQuery):
         return
 
     status = payment.get("status", "")
+    payment_id = payment.get("id", "") or stored_user.last_payment_id
+    already_processed = (
+        stored_user.last_payment_id == payment_id
+        and stored_user.last_payment_status == "succeeded"
+    )
     user_store.set_payment_state(
         callback_query.from_user.id,
-        payment_id=stored_user.last_payment_id,
+        payment_id=payment_id,
         payment_status=status,
     )
 
     if status == "succeeded":
+        if already_processed:
+            await _show_device_picker(callback_query.from_user)
+            return
         refreshed_user = user_store.get_user(callback_query.from_user.id)
         if not refreshed_user:
             await bot.send_message(callback_query.from_user.id, "Не удалось обновить доступ после оплаты.")
