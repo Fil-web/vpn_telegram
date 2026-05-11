@@ -60,12 +60,15 @@ async def _load_access_text(user) -> str:
 async def _show_device_picker(user, intro_text: str | None = None) -> None:
     access_data = await _load_access_text(user)
     text = intro_text or (
-        "🚀 VPN готов к подключению.\n\n"
-        f"{_access_summary()}\n\n"
-        "Выберите устройство, и я покажу самый удобный способ подключения."
+        "✅ Доступ уже активен.\n\n"
+        "Осталось только выбрать устройство и подключиться удобным способом.\n\n"
+        f"{_access_summary()}"
     )
     if access_data:
-        text += f"\n\n<pre>{escape(access_data)}</pre>"
+        text += (
+            "\n\nНиже уже подготовлена ваша ссылка для подключения:"
+            f"\n\n<pre>{escape(access_data)}</pre>"
+        )
     await bot.send_message(
         user.id,
         text,
@@ -285,11 +288,11 @@ async def check_payment_callback(callback_query: CallbackQuery):
         await _show_device_picker(
             callback_query.from_user,
             (
-                "✅ Доступ активирован.\n\n"
-                "Все готово: VPN уже подключен к вашему аккаунту.\n\n"
+                "🎉 Оплата прошла успешно.\n\n"
+                "Доступ уже активирован и привязан к вашему аккаунту.\n\n"
                 f"Период доступа: {config.access_policy.paid_duration_days} дней\n"
                 f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ\n\n"
-                "Выберите устройство и подключайтесь в удобном для себя формате."
+                "Теперь выберите устройство и подключайтесь."
             ),
         )
         return
