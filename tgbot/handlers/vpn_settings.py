@@ -45,7 +45,7 @@ def _access_summary() -> str:
 def _payment_required_text() -> str:
     return (
         "💸 Пробный период уже использован.\n\n"
-        f"Чтобы продолжить пользоваться VPN, оплатите доступ на {config.access_policy.paid_duration_days} дней.\n\n"
+        f"Чтобы продолжить пользоваться VPN без перерывов, активируйте полный доступ на {config.access_policy.paid_duration_days} дней.\n\n"
         f"{_access_summary()}"
     )
 
@@ -99,9 +99,10 @@ async def _send_vpn_access(user) -> None:
             await _show_device_picker(
                 user,
                 (
-                    "🎁 Пробный доступ активирован на 1 день.\n\n"
-                    f"📦 Лимит пробного трафика: {config.access_policy.trial_traffic_gb} ГБ\n"
-                    "После окончания пробного периода доступ можно продлить оплатой.\n\n"
+                    "🎁 Пробный доступ активирован.\n\n"
+                    f"⏳ Срок: {config.access_policy.trial_duration_days} день\n"
+                    f"📦 Лимит пробного трафика: {config.access_policy.trial_traffic_gb} ГБ\n\n"
+                    "Проверьте скорость и удобство подключения. Если все подойдет, доступ можно продлить без смены ссылки.\n\n"
                     "Выберите устройство для подключения."
                 ),
             )
@@ -130,6 +131,7 @@ def _platform_text(platform: str) -> tuple[str, str | None, str | None]:
     texts = {
         "android": (
             "🤖 Android\n\n"
+            "Самый удобный вариант для Android:\n\n"
             "1. Нажмите автоматическое подключение.\n"
             "2. Откроется v2RayTun и предложит импорт.\n"
             "3. Если не сработает, используйте ручное добавление ниже.",
@@ -138,6 +140,7 @@ def _platform_text(platform: str) -> tuple[str, str | None, str | None]:
         ),
         "ios": (
             "🍎 iPhone / iOS\n\n"
+            "Для iPhone подключение тоже простое:\n\n"
             "1. Откройте приложение из App Store.\n"
             "2. Добавьте subscription-ссылку вручную.\n"
             "3. Если приложение уже установлено, просто скопируйте ссылку ниже.",
@@ -146,6 +149,7 @@ def _platform_text(platform: str) -> tuple[str, str | None, str | None]:
         ),
         "mac": (
             "💻 Mac\n\n"
+            "Для Mac подойдет любой совместимый Xray-клиент:\n\n"
             "1. Скачайте совместимый Xray-клиент.\n"
             "2. Импортируйте subscription-ссылку.\n"
             "3. Если быстрый импорт не сработает, используйте ручную ссылку ниже.",
@@ -154,6 +158,7 @@ def _platform_text(platform: str) -> tuple[str, str | None, str | None]:
         ),
         "windows": (
             "🪟 Windows\n\n"
+            "Для Windows рекомендую классический вариант:\n\n"
             "1. Скачайте v2rayN.\n"
             "2. Импортируйте subscription-ссылку.\n"
             "3. При необходимости воспользуйтесь ручным добавлением.",
@@ -243,7 +248,7 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
             f"Сумма: {config.access_policy.price_rub} ₽\n"
             f"Период доступа: {config.access_policy.paid_duration_days} дней\n"
             f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ\n\n"
-            "После оплаты доступ активируется автоматически. Если есть задержка, нажмите «Проверить оплату»."
+            "После оплаты доступ активируется автоматически. Если подтверждение задержится, просто нажмите «Проверить оплату»."
         ),
         reply_markup=keyboard_payment_required(),
     )
@@ -294,7 +299,7 @@ async def check_payment_callback(callback_query: CallbackQuery):
             callback_query.from_user,
             (
                 "✅ Оплата подтверждена.\n\n"
-                f"Доступ продлен на {config.access_policy.paid_duration_days} дней.\n"
+                f"Доступ активирован на {config.access_policy.paid_duration_days} дней.\n"
                 f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ.\n\n"
                 "Выберите устройство для подключения."
             ),

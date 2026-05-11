@@ -14,7 +14,8 @@ async def user_start(message: Message):
     is_subscribed, error_text = await ensure_user_subscription(bot, message.from_user)
     if not is_subscribed:
         await message.answer(
-            '👋 Привет! Я выдаю VPN только подписчикам канала.\n\n'
+            '👋 Привет! Здесь можно быстро получить VPN-доступ.\n\n'
+            'Чтобы начать, нужна только подписка на канал.\n\n'
             f'{error_text}',
             reply_markup=keyboard_subscription(),
             disable_web_page_preview=True,
@@ -22,12 +23,12 @@ async def user_start(message: Message):
         return
 
     await message.answer(
-        '👋 Привет! Я помогу быстро получить доступ к VPN.\n\n'
-        'Как это работает:\n'
-        '• подписка на канал обязательна\n'
-        '• после подписки доступен пробный период на 1 день\n'
-        '• дальше доступ продлевается оплатой 250 ₽ за 30 дней\n'
-        '• подключение доступно для Android, iPhone, Mac, Windows и других устройств',
+        '👋 Привет! Здесь все максимально просто:\n\n'
+        '• подписываетесь на канал\n'
+        '• получаете пробный VPN на 1 день\n'
+        '• если сервис подходит, продлеваете доступ за 250 ₽ на 30 дней\n'
+        '• подключение доступно для Android, iPhone, Mac, Windows и других устройств\n\n'
+        'Нажмите кнопку ниже, и бот сам проведет вас дальше.',
         reply_markup=keyboard_start(),
         disable_web_page_preview=True,
     )
@@ -36,14 +37,14 @@ async def user_start(message: Message):
 @user_router.message(Command('help'))
 async def help_handler(message: Message):
     await message.answer(
-        'ℹ️ Бот выдает готовую subscription-ссылку для VPN на базе Xray только подписчикам канала.\n\n'
+        'ℹ️ Как это работает\n\n'
         'Подключение занимает меньше минуты:\n'
         '• 📢 подпишитесь на канал\n'
         '• ✅ подтвердите доступ в боте\n'
         '• 🎁 получите пробный доступ на 1 день\n'
-        '• 📲 выберите устройство и подключитесь\n'
+        '• 📲 выберите устройство и подключитесь в пару нажатий\n'
         '• 💳 для продления оплатите 250 ₽ за 30 дней\n\n'
-        'После проверки бот сразу покажет все нужные данные для подключения.',
+        'В оплаченный период входит 50 ГБ трафика. После проверки бот сразу покажет все нужные данные для подключения.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
@@ -54,14 +55,14 @@ async def help_callback_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     await bot.send_message(
         callback_query.from_user.id,
-        'ℹ️ Бот выдает готовую subscription-ссылку для VPN на базе Xray только подписчикам канала.\n\n'
+        'ℹ️ Как это работает\n\n'
         'Подключение занимает меньше минуты:\n'
         '• 📢 подпишитесь на канал\n'
         '• ✅ подтвердите доступ в боте\n'
         '• 🎁 получите пробный доступ на 1 день\n'
-        '• 📲 выберите устройство и подключитесь\n'
+        '• 📲 выберите устройство и подключитесь в пару нажатий\n'
         '• 💳 для продления оплатите 250 ₽ за 30 дней\n\n'
-        'После проверки бот сразу покажет все нужные данные для подключения.',
+        'В оплаченный период входит 50 ГБ трафика. После проверки бот сразу покажет все нужные данные для подключения.',
         reply_markup=keyboard_help(),
         disable_web_page_preview=True,
     )
@@ -74,7 +75,7 @@ async def check_subscription_handler(callback_query: CallbackQuery):
     if is_subscribed:
         await bot.send_message(
             callback_query.from_user.id,
-            '✅ Подписка подтверждена. Теперь можно получить VPN.',
+            '✅ Подписка подтверждена. Можно получать пробный доступ к VPN.',
             reply_markup=keyboard_start(),
         )
         return

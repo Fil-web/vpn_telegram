@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def keyboard_start():
     builder = InlineKeyboardBuilder()
-    builder.button(text='🚀 Подключить VPN', callback_data='vpn')
+    builder.button(text='🚀 Получить VPN', callback_data='vpn')
     builder.button(text='💸 Оплата', callback_data='payment_rules')
     builder.button(text='ℹ️ Как это работает', callback_data='help')
     builder.adjust(2, 1)
