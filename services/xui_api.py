@@ -478,7 +478,7 @@ class XUIService:
             for index, node in enumerate(config.xui.all_nodes()):
                 url = self._subscription_url(node, sub_id)
                 response = await session.get(url, ssl=node.verify_ssl)
-                if response.status >= 400 and index > 0 and stored_user and stored_user.xui_email:
+                if response.status >= 400 and stored_user and stored_user.xui_email:
                     await response.release()
                     async with ClientSession(cookie_jar=CookieJar(unsafe=True)) as node_session:
                         await self._ensure_client_on_node(
@@ -489,7 +489,11 @@ class XUIService:
                             sub_id,
                         )
                     response = await session.get(url, ssl=node.verify_ssl)
-                response.raise_for_status()
+                if response.status >= 400:
+                    if index == 0:
+                        response.raise_for_status()
+                    await response.release()
+                    continue
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):
                     if index == 0:
@@ -500,7 +504,9 @@ class XUIService:
                         all_lines.append(line)
             for item in config.xui.extra_static_sub_urls:
                 response = await session.get(item.url)
-                response.raise_for_status()
+                if response.status >= 400:
+                    await response.release()
+                    continue
                 payload = await response.text()
                 for line in self._normalize_subscription_lines(payload):
                     line = self._apply_label(line, item.label)
