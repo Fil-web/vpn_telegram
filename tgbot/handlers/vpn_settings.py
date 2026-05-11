@@ -21,6 +21,7 @@ from services.user_store import user_store
 from tgbot.keyboards.inline import (
     keyboard_device_actions,
     keyboard_device_picker,
+    keyboard_payment_checkout,
     keyboard_payment_required,
     keyboard_payment_rules,
     keyboard_subscription,
@@ -252,9 +253,8 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
             "• одну рабочую ссылку для всех ваших устройств\n\n"
             "После оплаты доступ активируется автоматически. Если подтверждение немного задержится, просто нажмите «Проверить оплату»."
         ),
-        reply_markup=keyboard_payment_required(),
+        reply_markup=keyboard_payment_checkout(confirmation_url),
     )
-    await bot.send_message(callback_query.from_user.id, confirmation_url)
 
 
 @vpn_router.callback_query(F.data == "check_payment")
