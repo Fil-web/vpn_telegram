@@ -11,6 +11,15 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _parse_dt(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 @dataclass
 class StoredUser:
     telegram_id: int
@@ -27,6 +36,11 @@ class StoredUser:
     xui_client_id: str | None
     xui_sub_id: str | None
     xui_inbound_id: int | None
+    trial_started_at: str | None
+    access_until: str | None
+    access_kind: str | None
+    last_payment_id: str | None
+    last_payment_status: str | None
 
     @property
     def display_name(self) -> str:
@@ -35,6 +49,19 @@ class StoredUser:
         if self.first_name:
             return self.first_name
         return str(self.telegram_id)
+
+    @property
+    def access_until_dt(self) -> datetime | None:
+        return _parse_dt(self.access_until)
+
+    @property
+    def has_active_access(self) -> bool:
+        access_until = self.access_until_dt
+        return bool(access_until and access_until > datetime.now(timezone.utc))
+
+    @property
+    def trial_used(self) -> bool:
+        return bool(self.trial_started_at)
 
 
 class UserStore:
@@ -64,6 +91,11 @@ class UserStore:
                     xui_client_id TEXT,
                     xui_sub_id TEXT,
                     xui_inbound_id INTEGER,
+                    trial_started_at TEXT,
+                    access_until TEXT,
+                    access_kind TEXT,
+                    last_payment_id TEXT,
+                    last_payment_status TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -73,6 +105,11 @@ class UserStore:
             self._ensure_column(conn, "users", "xui_client_id", "TEXT")
             self._ensure_column(conn, "users", "xui_sub_id", "TEXT")
             self._ensure_column(conn, "users", "xui_inbound_id", "INTEGER")
+            self._ensure_column(conn, "users", "trial_started_at", "TEXT")
+            self._ensure_column(conn, "users", "access_until", "TEXT")
+            self._ensure_column(conn, "users", "access_kind", "TEXT")
+            self._ensure_column(conn, "users", "last_payment_id", "TEXT")
+            self._ensure_column(conn, "users", "last_payment_status", "TEXT")
 
     def _ensure_column(self, conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
         columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -88,9 +125,10 @@ class UserStore:
                     telegram_id, username, first_name, last_name, language_code,
                     was_subscribed, is_banned_forever, banned_reason,
                     xui_email, xui_client_id, xui_sub_id, xui_inbound_id,
+                    trial_started_at, access_until, access_kind, last_payment_id, last_payment_status,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, NULL, ?, ?)
+                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?)
                 ON CONFLICT(telegram_id) DO UPDATE SET
                     username=excluded.username,
                     first_name=excluded.first_name,
@@ -132,6 +170,11 @@ class UserStore:
             xui_client_id=row["xui_client_id"],
             xui_sub_id=row["xui_sub_id"],
             xui_inbound_id=row["xui_inbound_id"],
+            trial_started_at=row["trial_started_at"],
+            access_until=row["access_until"],
+            access_kind=row["access_kind"],
+            last_payment_id=row["last_payment_id"],
+            last_payment_status=row["last_payment_status"],
         )
 
     def get_user_by_sub_id(self, sub_id: str) -> StoredUser | None:
@@ -203,6 +246,62 @@ class UserStore:
                 """,
                 (email, client_id, sub_id, inbound_id, _utc_now(), telegram_id),
             )
+
+    def set_access_period(
+        self,
+        telegram_id: int,
+        *,
+        access_until: str,
+        access_kind: str,
+        trial_started_at: str | None = None,
+    ) -> None:
+        with self._connect() as conn:
+            if trial_started_at is None:
+                current_trial = conn.execute(
+                    "SELECT trial_started_at FROM users WHERE telegram_id = ?",
+                    (telegram_id,),
+                ).fetchone()
+                trial_started_at = current_trial["trial_started_at"] if current_trial else None
+            conn.execute(
+                """
+                UPDATE users
+                SET access_until = ?,
+                    access_kind = ?,
+                    trial_started_at = ?,
+                    updated_at = ?
+                WHERE telegram_id = ?
+                """,
+                (access_until, access_kind, trial_started_at, _utc_now(), telegram_id),
+            )
+
+    def set_payment_state(
+        self,
+        telegram_id: int,
+        *,
+        payment_id: str,
+        payment_status: str,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET last_payment_id = ?,
+                    last_payment_status = ?,
+                    updated_at = ?
+                WHERE telegram_id = ?
+                """,
+                (payment_id, payment_status, _utc_now(), telegram_id),
+            )
+
+    def get_user_by_payment_id(self, payment_id: str) -> StoredUser | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT telegram_id FROM users WHERE last_payment_id = ?",
+                (payment_id,),
+            ).fetchone()
+        if not row:
+            return None
+        return self.get_user(int(row["telegram_id"]))
 
     def list_users(self) -> list[StoredUser]:
         with self._connect() as conn:

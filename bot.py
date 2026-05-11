@@ -11,7 +11,10 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from loader import config
+from services import ensure_paid_access, yookassa_service
+from services.user_store import user_store
 from services.xui_api import xui_service
+from tgbot.keyboards.inline import keyboard_device_picker, keyboard_payment_required
 from tgbot.handlers import routers_list
 from tgbot.middlewares.flood import ThrottlingMiddleware
 from utils import broadcaster
@@ -126,7 +129,8 @@ async def manual_page_handler(request: web.Request) -> web.Response:
       <h1>Ручное добавление VPN</h1>
       <p>
         Android: откройте v2RayTun и добавьте subscription-ссылку вручную.<br>
-        iPhone / iOS: установите V2Ray Client из App Store и добавьте subscription-ссылку вручную.
+        iPhone / iOS: установите V2Ray Client и добавьте subscription-ссылку.<br>
+        Mac / Windows / другие устройства: откройте совместимый Xray-клиент и импортируйте subscription-ссылку по URL.
       </p>
       <a class="btn secondary" href="https://apps.apple.com/ru/app/v2ray-client/id6747379524" target="_blank" rel="noopener noreferrer">🍎 Открыть приложение для iPhone / iOS</a>
       <a class="btn" href="#" id="copy-btn">Скопировать ссылку</a>
@@ -182,11 +186,86 @@ async def subscription_handler(request: web.Request) -> web.Response:
     return web.Response(text=payload, content_type="text/plain")
 
 
+async def payment_return_handler(request: web.Request) -> web.Response:
+    html = """<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Оплата VPN</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f6fbff; color: #102a43; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: #fff; border-radius: 24px; padding: 28px; box-shadow: 0 20px 60px rgba(16,42,67,.08); }
+    h1 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Оплата принята в обработку</h1>
+      <p>Можно вернуться в Telegram-бота и нажать «Проверить оплату». Если платеж уже подтвержден, доступ активируется автоматически.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+    return web.Response(text=html, content_type="text/html")
+
+
+async def yookassa_webhook_handler(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.Response(text="Invalid JSON", status=400)
+
+    payment_object = payload.get("object") or {}
+    payment_id = payment_object.get("id", "")
+    status = payment_object.get("status", "")
+
+    stored_user = yookassa_service.resolve_user_from_notification(payload)
+    if not stored_user:
+        logger.warning("YooKassa webhook user not resolved for payment %s", payment_id)
+        return web.Response(text="ok")
+
+    if payment_id:
+        user_store.set_payment_state(
+            stored_user.telegram_id,
+            payment_id=payment_id,
+            payment_status=status,
+        )
+
+    if payload.get("event") == "payment.succeeded" or status == "succeeded":
+        try:
+            refreshed_user = user_store.get_user(stored_user.telegram_id) or stored_user
+            await ensure_paid_access(refreshed_user)
+            await request.app["bot"].send_message(
+                stored_user.telegram_id,
+                (
+                    "✅ Оплата подтверждена.\n\n"
+                    f"Доступ активирован на {config.access_policy.paid_duration_days} дней.\n"
+                    f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ.\n\n"
+                    "Выберите устройство для подключения."
+                ),
+                reply_markup=keyboard_device_picker(),
+            )
+        except Exception:
+            logger.exception("Failed to activate paid access for user %s", stored_user.telegram_id)
+            await request.app["bot"].send_message(
+                stored_user.telegram_id,
+                "Оплата получена, но доступ пока не активировался автоматически. Нажмите «Проверить оплату» в боте.",
+                reply_markup=keyboard_payment_required(),
+            )
+
+    return web.Response(text="ok")
+
+
 def create_auxiliary_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/connect", connect_page_handler)
     app.router.add_get("/manual", manual_page_handler)
     app.router.add_get("/sub/{sub_id}", subscription_handler)
+    app.router.add_post(config.yookassa.webhook_path, yookassa_webhook_handler)
+    app.router.add_get(config.yookassa.return_path, payment_return_handler)
     return app
 
 
@@ -251,6 +330,7 @@ def main_webhook():
     register_global_middlewares(dp)
 
     app = create_auxiliary_app()
+    app["bot"] = bot
 
     # Create an instance of request handler,
     # aiogram has few implementations for different cases of usage
@@ -279,6 +359,7 @@ async def main_polling():
     await bot.delete_webhook()
     runner = web.AppRunner(create_auxiliary_app())
     await runner.setup()
+    runner.app["bot"] = bot
     site = web.TCPSite(
         runner,
         host="0.0.0.0",

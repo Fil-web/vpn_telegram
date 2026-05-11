@@ -4,6 +4,30 @@ from dataclasses import dataclass, field
 from environs import Env
 
 
+DEFAULT_PAYMENT_RULES_TEXT = """💸ОПЛАТА
+
+ Условия оплаты и срок действия доступа:
+
+📅 VPN предоставляется на фиксированный срок 30 дней - это и есть период доступа, который соответствует сроку аренды сервера и рассчитывается помесячно.
+
+⏰ Если оплата не поступила вовремя, может быть предоставлен дополнительный 1 день пользования. Этот дополнительный день является запасом на случай задержки оплаты, а не постоянной отсрочкой и будет учтён, в случае продления сервиса.
+
+❌ Если оплата не поступает в течение этого времени, доступ к VPN отключается, для дальнейшего пользования необходимо вовремя продлевать доступ на следующий 30-дневный период.
+
+✅ При обычном использовании действует фиксированная стоимость без доплат, если объём трафика превышает 60 ГБ за месяц, потребуется дополнительная плата, которая обсуждается индивидуально с админом.
+
+
+✉️ Если у вас возникли сложности с оплатой, пожалуйста, сообщите заранее 👉@objru
+
+📢 ПОДПИСКА НА КАНАЛ ОБЯЗАТЕЛЬНА
+
+😅 После подключения отписываться от канала нельзя, это  базовая проверка на то, что вы не бот.
+
+😱 Если сервис зафиксирует отписку после получения доступа, повторное выдача ключа для VPN может быть отклонена без возможности повторной выдачи "ВЕЧНЫЙ БАН".
+
+👍 Если не заходите пользоваться VPN дальше, то этот вариант подходит идеально для двух сторон, если пользуйтесь сервисом дальше - ознакомьтесь с вкладкой "ОПЛАТА"."""
+
+
 @dataclass
 class TgBot:
     token: str
@@ -43,6 +67,27 @@ class VpnAccess:
     def from_env(env: Env):
         text = env.str("VPN_ACCESS_TEXT", "")
         return VpnAccess(text=text)
+
+
+@dataclass
+class AccessPolicy:
+    trial_duration_days: int
+    trial_traffic_gb: int
+    paid_duration_days: int
+    paid_traffic_gb: int
+    price_rub: int
+    payment_rules_text: str
+
+    @staticmethod
+    def from_env(env: Env):
+        return AccessPolicy(
+            trial_duration_days=env.int("VPN_TRIAL_DURATION_DAYS", 1),
+            trial_traffic_gb=env.int("VPN_TRIAL_TRAFFIC_GB", 2),
+            paid_duration_days=env.int("VPN_PAID_DURATION_DAYS", 30),
+            paid_traffic_gb=env.int("VPN_PAID_TRAFFIC_GB", 50),
+            price_rub=env.int("VPN_PRICE_RUB", 250),
+            payment_rules_text=env.str("PAYMENT_RULES_TEXT", DEFAULT_PAYMENT_RULES_TEXT).strip(),
+        )
 
 
 @dataclass
@@ -105,6 +150,28 @@ class Certificates:
 
     def is_configured(self) -> bool:
         return bool(self.fullchain_path and self.key_path)
+
+
+@dataclass
+class YooKassa:
+    enabled: bool
+    shop_id: str
+    secret_key: str
+    webhook_path: str
+    return_path: str
+
+    @staticmethod
+    def from_env(env: Env):
+        return YooKassa(
+            enabled=env.bool("YOOKASSA_ENABLED", False),
+            shop_id=env.str("YOOKASSA_SHOP_ID", "").strip(),
+            secret_key=env.str("YOOKASSA_SECRET_KEY", "").strip(),
+            webhook_path=env.str("YOOKASSA_WEBHOOK_PATH", "/yookassa/webhook").strip() or "/yookassa/webhook",
+            return_path=env.str("YOOKASSA_RETURN_PATH", "/payment/return").strip() or "/payment/return",
+        )
+
+    def is_configured(self) -> bool:
+        return self.enabled and bool(self.shop_id and self.secret_key)
 
 
 @dataclass
@@ -263,10 +330,12 @@ class Config:
     tg_bot: TgBot
     webhook: Webhook
     vpn_access: VpnAccess
+    access_policy: AccessPolicy
     subscription: ChannelSubscription
     access_chat: AccessChat
     database: Database
     certificates: Certificates
+    yookassa: YooKassa
     xui: XUI
 
 
@@ -278,9 +347,11 @@ def load_config():
         tg_bot=TgBot.from_env(env),
         webhook=Webhook.from_env(env),
         vpn_access=VpnAccess.from_env(env),
+        access_policy=AccessPolicy.from_env(env),
         subscription=ChannelSubscription.from_env(env),
         access_chat=AccessChat.from_env(env),
         database=Database.from_env(env),
         certificates=Certificates.from_env(env),
+        yookassa=YooKassa.from_env(env),
         xui=XUI.from_env(env),
     )

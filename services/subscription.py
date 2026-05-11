@@ -34,13 +34,6 @@ async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | No
         )
 
     try:
-        if config.access_chat.required:
-            is_chat_member = await _check_membership(bot, config.access_chat.chat_id, user.id)
-            if not is_chat_member:
-                return False, (
-                    "Сначала вступите в закрытый чат, потом вернитесь в бота и нажмите проверку."
-                )
-
         if not config.subscription.required:
             user_store.mark_subscribed(user.id)
             return True, None
@@ -73,11 +66,6 @@ async def ensure_user_subscription(bot: Bot, user: User) -> tuple[bool, str | No
             "🚫 Доступ к боту закрыт навсегда.\n\n"
             "Система зафиксировала отмену подписки после получения доступа.\n"
             "Повторная выдача VPN больше недоступна."
-        )
-
-    if config.access_chat.required:
-        return False, (
-            "Сначала вступите в закрытый чат и подпишитесь на канал, потом нажмите кнопку проверки."
         )
 
     return False, "Сначала подпишитесь на канал, потом нажмите кнопку проверки."

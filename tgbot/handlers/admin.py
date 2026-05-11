@@ -249,6 +249,13 @@ async def admin_gift_callback(callback_query: CallbackQuery):
         )
         return
 
+    user_store.set_access_period(
+        stored_user.telegram_id,
+        access_until=grant_result.expires_at.isoformat(),
+        access_kind="gift",
+        trial_started_at=stored_user.trial_started_at,
+    )
+
     await _show_admin_screen(
         callback_query,
         (
