@@ -41,6 +41,8 @@ class StoredUser:
     access_kind: str | None
     last_payment_id: str | None
     last_payment_status: str | None
+    reminder_two_day_sent_at: str | None
+    reminder_one_day_sent_at: str | None
 
     @property
     def display_name(self) -> str:
@@ -96,6 +98,8 @@ class UserStore:
                     access_kind TEXT,
                     last_payment_id TEXT,
                     last_payment_status TEXT,
+                    reminder_two_day_sent_at TEXT,
+                    reminder_one_day_sent_at TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -110,6 +114,8 @@ class UserStore:
             self._ensure_column(conn, "users", "access_kind", "TEXT")
             self._ensure_column(conn, "users", "last_payment_id", "TEXT")
             self._ensure_column(conn, "users", "last_payment_status", "TEXT")
+            self._ensure_column(conn, "users", "reminder_two_day_sent_at", "TEXT")
+            self._ensure_column(conn, "users", "reminder_one_day_sent_at", "TEXT")
 
     def _ensure_column(self, conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
         columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -126,9 +132,10 @@ class UserStore:
                     was_subscribed, is_banned_forever, banned_reason,
                     xui_email, xui_client_id, xui_sub_id, xui_inbound_id,
                     trial_started_at, access_until, access_kind, last_payment_id, last_payment_status,
+                    reminder_two_day_sent_at, reminder_one_day_sent_at,
                     created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?)
+                VALUES (?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?)
                 ON CONFLICT(telegram_id) DO UPDATE SET
                     username=excluded.username,
                     first_name=excluded.first_name,
@@ -175,6 +182,8 @@ class UserStore:
             access_kind=row["access_kind"],
             last_payment_id=row["last_payment_id"],
             last_payment_status=row["last_payment_status"],
+            reminder_two_day_sent_at=row["reminder_two_day_sent_at"],
+            reminder_one_day_sent_at=row["reminder_one_day_sent_at"],
         )
 
     def get_user_by_sub_id(self, sub_id: str) -> StoredUser | None:
@@ -268,6 +277,8 @@ class UserStore:
                 SET access_until = ?,
                     access_kind = ?,
                     trial_started_at = ?,
+                    reminder_two_day_sent_at = NULL,
+                    reminder_one_day_sent_at = NULL,
                     updated_at = ?
                 WHERE telegram_id = ?
                 """,
@@ -302,6 +313,25 @@ class UserStore:
         if not row:
             return None
         return self.get_user(int(row["telegram_id"]))
+
+    def mark_reminder_sent(self, telegram_id: int, reminder_type: str) -> None:
+        column_map = {
+            "2d": "reminder_two_day_sent_at",
+            "1d": "reminder_one_day_sent_at",
+        }
+        column = column_map.get(reminder_type)
+        if not column:
+            raise ValueError(f"Unknown reminder type: {reminder_type}")
+        with self._connect() as conn:
+            conn.execute(
+                f"""
+                UPDATE users
+                SET {column} = ?,
+                    updated_at = ?
+                WHERE telegram_id = ?
+                """,
+                (_utc_now(), _utc_now(), telegram_id),
+            )
 
     def list_users(self) -> list[StoredUser]:
         with self._connect() as conn:

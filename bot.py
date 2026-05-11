@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import ssl
+from contextlib import suppress
 from urllib.parse import unquote
 
 from aiogram import Bot, Dispatcher, F
@@ -11,7 +12,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from loader import config
-from services import ensure_paid_access, yookassa_service
+from services import ensure_paid_access, send_expiry_reminders, yookassa_service
 from services.user_store import user_store
 from services.xui_api import xui_service
 from tgbot.keyboards.inline import keyboard_device_picker, keyboard_payment_required
@@ -20,6 +21,16 @@ from tgbot.middlewares.flood import ThrottlingMiddleware
 from utils import broadcaster
 
 logger = logging.getLogger(__name__)
+reminder_task: asyncio.Task | None = None
+
+
+async def reminder_loop(bot: Bot) -> None:
+    while True:
+        try:
+            await send_expiry_reminders(bot)
+        except Exception:
+            logger.exception("Failed while sending expiry reminders")
+        await asyncio.sleep(3600)
 
 
 async def connect_page_handler(request: web.Request) -> web.Response:
@@ -283,10 +294,22 @@ def get_ssl_context() -> ssl.SSLContext | None:
 
 
 async def on_startup(bot: Bot):
+    global reminder_task
     await broadcaster.broadcast(bot, [config.tg_bot.admin_id], "Бот запущен")
     await register_commands(bot)
+    if reminder_task is None or reminder_task.done():
+        reminder_task = asyncio.create_task(reminder_loop(bot))
     if config.webhook.use_webhook:
         await bot.set_webhook(f"https://{config.webhook.domain}{config.webhook.url}webhook")
+
+
+async def on_shutdown(*_args, **_kwargs):
+    global reminder_task
+    if reminder_task is not None:
+        reminder_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await reminder_task
+        reminder_task = None
 
 
 async def register_commands(bot: Bot):
@@ -328,6 +351,7 @@ def main_webhook():
 
     dp.include_routers(*routers_list)
     dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
     register_global_middlewares(dp)
 
     app = create_auxiliary_app()
@@ -371,6 +395,7 @@ async def main_polling():
     try:
         await dp.start_polling(bot)
     finally:
+        await on_shutdown()
         await runner.cleanup()
 
 
