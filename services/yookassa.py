@@ -29,7 +29,7 @@ class YooKassaService:
 
     async def create_payment(self, stored_user: StoredUser) -> dict:
         if not self.is_configured():
-            raise RuntimeError("Не настроен YOOKASSA_SECRET_KEY в .env.")
+            raise RuntimeError("Оплата временно недоступна. Попробуйте чуть позже или напишите администратору.")
 
         amount = Decimal(config.access_policy.price_rub).quantize(Decimal("1.00"))
         payload = {

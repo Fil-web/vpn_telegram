@@ -44,9 +44,10 @@ def _access_summary() -> str:
 
 def _payment_required_text() -> str:
     return (
-        "💸 Пробный период уже использован.\n\n"
-        f"Чтобы продолжить пользоваться VPN без перерывов, активируйте полный доступ на {config.access_policy.paid_duration_days} дней.\n\n"
-        f"{_access_summary()}"
+        "💸 Пробный период уже закончился.\n\n"
+        "Чтобы продолжить пользоваться VPN без перерывов, активируйте полный доступ.\n\n"
+        f"{_access_summary()}\n\n"
+        "После оплаты доступ продлится автоматически, а ваша ссылка останется рабочей."
     )
 
 
@@ -225,7 +226,7 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
     if not yookassa_service.is_enabled():
         await bot.send_message(
             callback_query.from_user.id,
-            "Оплата еще не активирована в боте. Нужно добавить YOOKASSA_SECRET_KEY в .env.",
+            "Оплата временно недоступна. Попробуйте немного позже или напишите администратору.",
             reply_markup=keyboard_payment_required(),
         )
         return
@@ -244,11 +245,12 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
     await bot.send_message(
         callback_query.from_user.id,
         (
-            f"💳 Ссылка на оплату готова.\n\n"
-            f"Сумма: {config.access_policy.price_rub} ₽\n"
-            f"Период доступа: {config.access_policy.paid_duration_days} дней\n"
-            f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ\n\n"
-            "После оплаты доступ активируется автоматически. Если подтверждение задержится, просто нажмите «Проверить оплату»."
+            "💳 Почти готово.\n\n"
+            f"За {config.access_policy.price_rub} ₽ вы получаете:\n"
+            f"• {config.access_policy.paid_duration_days} дней доступа\n"
+            f"• {config.access_policy.paid_traffic_gb} ГБ трафика\n"
+            "• одну рабочую ссылку для всех ваших устройств\n\n"
+            "После оплаты доступ активируется автоматически. Если подтверждение немного задержится, просто нажмите «Проверить оплату»."
         ),
         reply_markup=keyboard_payment_required(),
     )
@@ -298,10 +300,10 @@ async def check_payment_callback(callback_query: CallbackQuery):
         await _show_device_picker(
             callback_query.from_user,
             (
-                "✅ Оплата подтверждена.\n\n"
-                f"Доступ активирован на {config.access_policy.paid_duration_days} дней.\n"
+                "✅ Доступ активирован.\n\n"
+                f"Ваш VPN уже продлен на {config.access_policy.paid_duration_days} дней.\n"
                 f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ.\n\n"
-                "Выберите устройство для подключения."
+                "Теперь просто выберите устройство и подключайтесь."
             ),
         )
         return
