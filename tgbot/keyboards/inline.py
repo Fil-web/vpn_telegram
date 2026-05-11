@@ -14,8 +14,8 @@ def keyboard_start(has_active_access: bool = False):
         text='🚀 Получить VPN' if has_active_access else '🔓 Открыть доступ',
         callback_data='vpn',
     )
-    builder.button(text='📋 Правила', callback_data='payment_rules')
-    builder.button(text='ℹ️ Как это работает', callback_data='help')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
+    builder.button(text='❓ Как подключиться', callback_data='help')
     builder.adjust(2, 1)
     return builder.as_markup()
 
@@ -33,7 +33,7 @@ def keyboard_payment_required():
     builder = InlineKeyboardBuilder()
     builder.button(text=f'💳 Оплатить {config.access_policy.price_rub} ₽', callback_data='buy_vpn')
     builder.button(text='🔄 Проверить оплату', callback_data='check_payment')
-    builder.button(text='📋 Правила', callback_data='payment_rules')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
     builder.adjust(1)
     return builder.as_markup()
 
@@ -42,7 +42,7 @@ def keyboard_payment_checkout(confirmation_url: str):
     builder = InlineKeyboardBuilder()
     builder.button(text=f'💳 Перейти к оплате {config.access_policy.price_rub} ₽', url=confirmation_url)
     builder.button(text='🔄 Проверить оплату', callback_data='check_payment')
-    builder.button(text='📋 Правила', callback_data='payment_rules')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
     builder.adjust(1)
     return builder.as_markup()
 
@@ -62,7 +62,7 @@ def keyboard_device_picker():
     builder.button(text='💻 Mac', callback_data='device:mac')
     builder.button(text='🪟 Windows', callback_data='device:windows')
     builder.button(text='🛠 Другие устройства', callback_data='device:other')
-    builder.button(text='📋 Правила', callback_data='payment_rules')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
     builder.adjust(2, 2, 1, 1)
     return builder.as_markup()
 
@@ -82,7 +82,7 @@ def keyboard_device_actions(
     if secondary_link and secondary_text:
         builder.button(text=secondary_text, url=secondary_link)
     builder.button(text='◀️ К устройствам', callback_data='vpn')
-    builder.button(text='📋 Правила', callback_data='payment_rules')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
     builder.adjust(1)
     return builder.as_markup()
 
@@ -107,7 +107,7 @@ def keyboard_help():
     builder = InlineKeyboardBuilder()
     if config.subscription.channel_url:
         builder.button(text='📢 Наш канал', url=config.subscription.channel_url)
-    builder.button(text='📋 Правила', callback_data='payment_rules')
+    builder.button(text='📋 Условия', callback_data='payment_rules')
     return builder.as_markup()
 
 
