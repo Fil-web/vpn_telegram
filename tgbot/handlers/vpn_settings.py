@@ -246,7 +246,7 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
     await bot.send_message(
         callback_query.from_user.id,
         (
-            "💳 Почти готово.\n\n"
+            "✨ Доступ готов к активации.\n\n"
             f"За {config.access_policy.price_rub} ₽ вы получаете:\n"
             f"• {config.access_policy.paid_duration_days} дней доступа\n"
             f"• {config.access_policy.paid_traffic_gb} ГБ трафика\n"
@@ -301,9 +301,10 @@ async def check_payment_callback(callback_query: CallbackQuery):
             callback_query.from_user,
             (
                 "✅ Доступ активирован.\n\n"
-                f"Ваш VPN уже продлен на {config.access_policy.paid_duration_days} дней.\n"
-                f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ.\n\n"
-                "Теперь просто выберите устройство и подключайтесь."
+                "Все готово: VPN уже подключен к вашему аккаунту.\n\n"
+                f"Период доступа: {config.access_policy.paid_duration_days} дней\n"
+                f"Лимит трафика: {config.access_policy.paid_traffic_gb} ГБ\n\n"
+                "Выберите устройство и подключайтесь в удобном для себя формате."
             ),
         )
         return
