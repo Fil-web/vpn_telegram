@@ -34,6 +34,21 @@ MAC_APP_URL = "https://github.com/2dust/v2rayN/releases/latest"
 OTHER_GUIDE_URL = "https://xtls.github.io/en/config/inbounds/vless.html"
 
 
+async def _answer_or_edit(callback_query: CallbackQuery, text: str, *, reply_markup=None) -> None:
+    message = callback_query.message
+    if message:
+        try:
+            await message.edit_text(text, reply_markup=reply_markup)
+            return
+        except Exception:
+            logger.exception("Failed to edit callback message for user %s", callback_query.from_user.id)
+    await bot.send_message(
+        callback_query.from_user.id,
+        text,
+        reply_markup=reply_markup,
+    )
+
+
 def _access_summary() -> str:
     return (
         f"⏳ Срок доступа: {config.access_policy.paid_duration_days} дней\n"
@@ -203,8 +218,8 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
     await callback_query.answer("Создаю ссылку на оплату...", show_alert=False)
     is_subscribed, error_text = await ensure_user_subscription(bot, callback_query.from_user)
     if not is_subscribed:
-        await bot.send_message(
-            callback_query.from_user.id,
+        await _answer_or_edit(
+            callback_query,
             error_text or "Сначала подпишитесь на канал.",
             reply_markup=keyboard_subscription(),
         )
@@ -214,11 +229,11 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
         user_store.upsert_user(callback_query.from_user)
         stored_user = user_store.get_user(callback_query.from_user.id)
     if not stored_user:
-        await bot.send_message(callback_query.from_user.id, "Не удалось подготовить оплату, попробуйте еще раз.")
+        await _answer_or_edit(callback_query, "Не удалось подготовить оплату, попробуйте еще раз.")
         return
     if not yookassa_service.is_enabled():
-        await bot.send_message(
-            callback_query.from_user.id,
+        await _answer_or_edit(
+            callback_query,
             "Оплата временно недоступна. Попробуйте немного позже или напишите администратору.",
             reply_markup=keyboard_payment_required(),
         )
@@ -227,16 +242,16 @@ async def buy_vpn_callback(callback_query: CallbackQuery):
         payment = await yookassa_service.create_payment(stored_user)
     except Exception as exc:
         logger.exception("Failed to create YooKassa payment for user %s", callback_query.from_user.id)
-        await bot.send_message(callback_query.from_user.id, str(exc))
+        await _answer_or_edit(callback_query, str(exc))
         return
 
     confirmation_url = ((payment.get("confirmation") or {}).get("confirmation_url")) or ""
     if not confirmation_url:
-        await bot.send_message(callback_query.from_user.id, "Не удалось получить ссылку на оплату.")
+        await _answer_or_edit(callback_query, "Не удалось получить ссылку на оплату.")
         return
 
-    await bot.send_message(
-        callback_query.from_user.id,
+    await _answer_or_edit(
+        callback_query,
         (
             "✨ Доступ готов к активации.\n\n"
             f"За {config.access_policy.price_rub} ₽ вы получаете:\n"
